@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#110816" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NASU RIOT" />
+  <meta name="description" content="栃木県北をホットロッドで爆走するスマホ向け疑似3Dレース試作" />
+  <title>NASU RIOT RACING — Prototype</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main id="game-shell">
+    <canvas id="game" aria-label="NASU RIOT RACING ゲーム画面"></canvas>
+
+    <header class="hud" aria-live="polite">
+      <div class="brand"><span>NASU</span> RIOT RACING <small>PROTO 03 · WILD RIDE</small></div>
+      <div class="meters">
+        <div><strong id="speed">0</strong><span>km/h</span></div>
+        <div><strong id="distance">0.0</strong><span>km</span></div>
+      </div>
+    </header>
+
+    <aside id="driver-card" class="driver-card mood-neutral" aria-live="polite">
+      <div class="portrait-frame">
+        <img id="driver-face" src="./assets/driver/president-neutral-v2.png" alt="ドライバーの表情" />
+        <span class="portrait-flash" aria-hidden="true"></span>
+      </div>
+      <p id="driver-mood">FOCUSED</p>
+      <strong>THE PRESIDENT</strong>
+      <small>PLAYER 01</small>
+    </aside>
+
+    <section id="start" class="start-panel">
+      <p class="eyebrow">NORTH TOCHIGI ILLEGAL GRAND PRIX</p>
+      <h1>県北を、<br><em>ブッ飛ばせ。</em></h1>
+      <p class="brief">GASで一気に加速。黄色いジャンプ台を狙え。道路の外まで攻めるとスピンします。</p>
+      <button id="start-button" type="button">ENGINE START</button>
+      <p class="rotate-note">横向きにすると走りやすくなります</p>
+    </section>
+
+    <section class="controls" aria-label="運転操作">
+      <div class="steering">
+        <button id="left" class="control steer" type="button" aria-label="左へ曲がる">◀</button>
+        <button id="right" class="control steer" type="button" aria-label="右へ曲がる">▶</button>
+      </div>
+      <div class="pedals">
+        <button id="brake" class="control brake" type="button">BRAKE</button>
+        <button id="gas" class="control gas" type="button">GAS</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast">ROAD SIDE! SPEED DOWN</div>
+  </main>
+  <script src="./game.js"></script>
+</body>
+</html>
