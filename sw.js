@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nasu-riot-racing-v4';
+const CACHE_NAME = 'nasu-riot-racing-v7';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -7,9 +7,10 @@ const CORE_ASSETS = [
   './manifest.webmanifest',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
-  './assets/driver/president-neutral-v2.png',
-  './assets/driver/president-happy-v2.png',
-  './assets/driver/president-angry-v2.png',
+  './assets/driver/president-neutral-v3.png',
+  './assets/driver/president-happy-v4.png',
+  './assets/driver/president-angry-v4.png',
+  './assets/sponsor/reverth-plate-pixel.png',
   './assets/car-v2/steer-hard-left.png',
   './assets/car-v2/steer-left.png',
   './assets/car-v2/steer-center.png',

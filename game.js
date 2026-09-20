@@ -7,10 +7,17 @@
   const distanceEl = document.querySelector('#distance');
   const startPanel = document.querySelector('#start');
   const startButton = document.querySelector('#start-button');
+  const garageButton = document.querySelector('#garage-button');
+  const garageBack = document.querySelector('#garage-back');
+  const setupName = document.querySelector('#setup-name');
   const toast = document.querySelector('#toast');
   const driverCard = document.querySelector('#driver-card');
   const driverFace = document.querySelector('#driver-face');
   const driverMood = document.querySelector('#driver-mood');
+  const mapCanvas = document.querySelector('#map-canvas');
+  const mapCtx = mapCanvas.getContext('2d');
+  const lapCount = document.querySelector('#lap-count');
+  const jumpButton = document.querySelector('#jump');
 
   const loadImage = src => {
     const image = new Image();
@@ -26,18 +33,49 @@
     spin: Array.from({ length: 8 }, (_, i) => loadImage(`./assets/car-v2/spin-${i}.png`)),
     jump: ['jump-up.png', 'jump-level.png', 'jump-down.png'].map(name => loadImage(`./assets/car-v2/${name}`))
   };
+  const sponsorPlate = loadImage('./assets/sponsor/reverth-plate-pixel.png');
 
   const moods = {
-    neutral: { src: './assets/driver/president-neutral-v2.png', label: 'LOCKED IN' },
-    happy: { src: './assets/driver/president-happy-v2.png', label: 'EAT DUST!' },
-    angry: { src: './assets/driver/president-angry-v2.png', label: 'YOU PUNK!' }
+    neutral: { src: './assets/driver/president-neutral-v3.png', label: 'LOCKED IN' },
+    happy: { src: './assets/driver/president-happy-v4.png', label: 'HAHA! EAT DUST!' },
+    angry: { src: './assets/driver/president-angry-v4.png', label: 'WHAAAT?!' }
   };
+
+  const partEffects = {
+    tire: {
+      street: { topSpeed: 0, accel: 0, grip: .03, dirt: 0, jump: 0 },
+      slick: { topSpeed: .03, accel: .09, grip: -.07, dirt: -.1, jump: -.02 },
+      allterrain: { topSpeed: -.04, accel: -.02, grip: .01, dirt: .18, jump: .05 }
+    },
+    engine: {
+      smallblock: { topSpeed: 0, accel: 0, grip: 0, dirt: 0, jump: 0 },
+      blower: { topSpeed: .04, accel: .16, grip: -.03, dirt: 0, jump: 0 },
+      bigblock: { topSpeed: .13, accel: -.05, grip: -.02, dirt: 0, jump: 0 }
+    },
+    gear: {
+      short: { topSpeed: -.09, accel: .14, grip: .02, dirt: 0, jump: 0 },
+      balanced: { topSpeed: 0, accel: 0, grip: 0, dirt: 0, jump: 0 },
+      long: { topSpeed: .11, accel: -.09, grip: -.01, dirt: 0, jump: 0 }
+    },
+    suspension: {
+      slammed: { topSpeed: .02, accel: 0, grip: .13, dirt: -.14, jump: -.13 },
+      street: { topSpeed: 0, accel: 0, grip: 0, dirt: 0, jump: 0 },
+      baja: { topSpeed: -.04, accel: -.02, grip: -.03, dirt: .2, jump: .19 }
+    },
+    diff: {
+      open: { topSpeed: 0, accel: -.03, grip: .05, dirt: .03, jump: 0 },
+      lsd: { topSpeed: 0, accel: .03, grip: .07, dirt: 0, jump: 0 },
+      spool: { topSpeed: .04, accel: .07, grip: -.1, dirt: -.03, jump: 0 }
+    }
+  };
+  const setup = { tire: 'street', engine: 'smallblock', gear: 'balanced', suspension: 'street', diff: 'lsd' };
+  const setupStats = { topSpeed: 1, accel: 1, grip: 1, dirt: 1, jump: 1 };
 
   const input = { left: false, right: false, gas: false, brake: false };
   const state = {
     running: false, speed: 0, maxSpeed: 330, position: 0, distance: 0, previousDistance: 0,
-    time: 0, shake: 0, steerVisual: 0, jump: 0, jumpDuration: 1.08,
-    spin: 0, spinDuration: .78, spinCooldown: 0, nextRamp: 420,
+    time: 0, shake: 0, steerVisual: 0, jump: 0, jumpDuration: 1.08, jumpDurationCurrent: 1.08,
+    spin: 0, spinDuration: .78, spinCooldown: 0, jumpCooldown: 0, nextRamp: 420,
     speedCelebrated: false, toastTimer: 0
   };
 
@@ -51,6 +89,51 @@
   let engineOsc = null;
   let enginePulse = null;
   let engineGain = null;
+
+  function getBuildName() {
+    if (setup.suspension === 'baja' && setup.tire === 'allterrain') return 'DIRT DEVIL';
+    if (setup.engine === 'blower' && setup.tire === 'slick') return 'BLOWN BANDIT';
+    if (setup.engine === 'bigblock' && setup.gear === 'long') return 'HIGHWAY HAMMER';
+    if (setup.diff === 'spool' && setup.gear === 'short') return 'STOPLIGHT BRUISER';
+    if (setup.suspension === 'slammed') return 'LOW ROAD MENACE';
+    return 'STREET BRAWLER';
+  }
+
+  function updateSetup() {
+    Object.keys(setupStats).forEach(stat => { setupStats[stat] = 1; });
+    Object.entries(setup).forEach(([group, choice]) => {
+      const effects = partEffects[group][choice];
+      Object.entries(effects).forEach(([stat, value]) => { setupStats[stat] += value; });
+    });
+    const barIds = { topSpeed: 'stat-speed', accel: 'stat-accel', grip: 'stat-grip', dirt: 'stat-dirt', jump: 'stat-jump' };
+    Object.entries(barIds).forEach(([stat, id]) => {
+      const percent = Math.max(12, Math.min(100, 50 + (setupStats[stat] - 1) * 210));
+      document.querySelector(`#${id}`).style.width = `${percent}%`;
+    });
+    setupName.textContent = getBuildName();
+    state.maxSpeed = Math.round(330 * setupStats.topSpeed);
+    try { localStorage.setItem('nasuRiotSetup', JSON.stringify(setup)); } catch (_) {}
+  }
+
+  try {
+    const savedSetup = JSON.parse(localStorage.getItem('nasuRiotSetup') || 'null');
+    if (savedSetup) Object.keys(setup).forEach(group => {
+      if (partEffects[group]?.[savedSetup[group]]) setup[group] = savedSetup[group];
+    });
+  } catch (_) {}
+
+  document.querySelectorAll('.setup-group').forEach(groupEl => {
+    const group = groupEl.dataset.group;
+    groupEl.querySelectorAll('button').forEach(button => {
+      button.classList.toggle('selected', button.dataset.choice === setup[group]);
+      button.addEventListener('click', () => {
+        setup[group] = button.dataset.choice;
+        groupEl.querySelectorAll('button').forEach(item => item.classList.toggle('selected', item === button));
+        updateSetup();
+      });
+    });
+  });
+  updateSetup();
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -88,11 +171,32 @@
   bindButton('#gas', 'gas');
   bindButton('#brake', 'brake');
 
+  function requestJump() {
+    if (!state.running || state.jump > 0 || state.spin > 0 || state.jumpCooldown > 0 || state.speed < 25) return;
+    state.jumpCooldown = .72;
+    triggerJump(false);
+  }
+
+  jumpButton.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    jumpButton.classList.add('active');
+    requestJump();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => jumpButton.addEventListener(type, event => {
+    event.preventDefault();
+    jumpButton.classList.remove('active');
+  }));
+
   const keys = {
     ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'gas', ArrowDown: 'brake',
     a: 'left', d: 'right', w: 'gas', s: 'brake'
   };
   addEventListener('keydown', event => {
+    if (event.code === 'Space') {
+      requestJump();
+      event.preventDefault();
+      return;
+    }
     if (!keys[event.key]) return;
     input[keys[event.key]] = true;
     event.preventDefault();
@@ -125,13 +229,17 @@
     enginePulse.start();
   }
 
+  garageButton.addEventListener('click', () => startPanel.classList.add('garage-open'));
+  garageBack.addEventListener('click', () => startPanel.classList.remove('garage-open'));
+
   startButton.addEventListener('click', () => {
+    updateSetup();
     state.running = true;
     state.speed = 55;
     document.querySelector('#game-shell').classList.add('running');
     startPanel.classList.add('hidden');
     startEngineAudio();
-    showToast('BURN RUBBER!', 1.25);
+    showToast(`${getBuildName()} READY!`, 1.25);
     if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(() => {});
   });
 
@@ -356,13 +464,81 @@
     ctx.restore();
   }
 
+  const trackPoints = [
+    [90, 196], [48, 184], [30, 150], [43, 119], [28, 84], [53, 35],
+    [100, 20], [144, 43], [151, 82], [125, 108], [151, 139], [137, 181]
+  ];
+  const lapLength = 2400;
+
+  function pointOnTrack(progress) {
+    const lengths = [];
+    let total = 0;
+    for (let i = 0; i < trackPoints.length; i++) {
+      const a = trackPoints[i];
+      const b = trackPoints[(i + 1) % trackPoints.length];
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      lengths.push(length);
+      total += length;
+    }
+    let target = progress * total;
+    for (let i = 0; i < lengths.length; i++) {
+      if (target <= lengths[i]) {
+        const a = trackPoints[i];
+        const b = trackPoints[(i + 1) % trackPoints.length];
+        const t = target / lengths[i];
+        return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+      }
+      target -= lengths[i];
+    }
+    return trackPoints[0];
+  }
+
+  function drawCourseMap() {
+    const progress = (state.distance % lapLength) / lapLength;
+    const player = pointOnTrack(progress);
+    mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
+    mapCtx.lineJoin = 'round';
+    mapCtx.lineCap = 'round';
+    mapCtx.beginPath();
+    trackPoints.forEach(([x, y], index) => index ? mapCtx.lineTo(x, y) : mapCtx.moveTo(x, y));
+    mapCtx.closePath();
+    mapCtx.strokeStyle = '#160a18';
+    mapCtx.lineWidth = 18;
+    mapCtx.stroke();
+    mapCtx.strokeStyle = '#fff0cf';
+    mapCtx.lineWidth = 10;
+    mapCtx.stroke();
+    mapCtx.setLineDash([4, 5]);
+    mapCtx.strokeStyle = '#ff4b12';
+    mapCtx.lineWidth = 2;
+    mapCtx.stroke();
+    mapCtx.setLineDash([]);
+    mapCtx.fillStyle = '#111018';
+    mapCtx.fillRect(80, 187, 20, 5);
+    mapCtx.fillStyle = '#f8c52b';
+    mapCtx.beginPath();
+    mapCtx.arc(player[0], player[1], 10, 0, Math.PI * 2);
+    mapCtx.fill();
+    mapCtx.strokeStyle = '#fff';
+    mapCtx.lineWidth = 3;
+    mapCtx.stroke();
+    mapCtx.fillStyle = '#110816';
+    mapCtx.beginPath();
+    mapCtx.moveTo(player[0], player[1] - 7);
+    mapCtx.lineTo(player[0] + 5, player[1] + 4);
+    mapCtx.lineTo(player[0] - 5, player[1] + 4);
+    mapCtx.closePath();
+    mapCtx.fill();
+    lapCount.textContent = `LAP ${Math.floor(state.distance / lapLength) + 1}`;
+  }
+
   function currentCarSprite() {
     if (state.spin > 0) {
       const progress = 1 - state.spin / state.spinDuration;
       return carSprites.spin[Math.floor(progress * carSprites.spin.length) % carSprites.spin.length];
     }
     if (state.jump > 0) {
-      const progress = 1 - state.jump / state.jumpDuration;
+      const progress = 1 - state.jump / state.jumpDurationCurrent;
       if (progress < .3) return carSprites.jump[0];
       if (progress < .7) return carSprites.jump[1];
       return carSprites.jump[2];
@@ -374,7 +550,7 @@
     const sprite = currentCarSprite();
     const speedBounce = Math.sin(state.time * .04) * Math.min(4, state.speed / 60);
     const size = Math.min(w * .42, h * .57, 340);
-    const jumpProgress = state.jump > 0 ? 1 - state.jump / state.jumpDuration : 0;
+    const jumpProgress = state.jump > 0 ? 1 - state.jump / state.jumpDurationCurrent : 0;
     const jumpHeight = state.jump > 0 ? Math.sin(Math.PI * jumpProgress) * h * .16 : 0;
     const x = w / 2 - size / 2 + state.position * w * .052;
     const y = h - size - Math.max(14, h * .015) + speedBounce - jumpHeight;
@@ -382,14 +558,49 @@
     ctx.translate(x + size / 2, y + size / 2);
     if (state.spin > 0) ctx.rotate(Math.sin((1 - state.spin / state.spinDuration) * Math.PI * 2) * .08);
     if (sprite.complete && sprite.naturalWidth) ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+    drawSponsorPlate(size);
     ctx.restore();
   }
 
-  function triggerJump() {
-    state.jump = state.jumpDuration;
+  function drawSponsorPlate(size) {
+    if (!sponsorPlate.complete || !sponsorPlate.naturalWidth) return;
+    let visibility = 1;
+    let scaleX = 1;
+    let skew = 0;
+    let offsetX = 0;
+
+    if (state.spin > 0) {
+      const progress = 1 - state.spin / state.spinDuration;
+      const facingRear = Math.cos(progress * Math.PI * 2);
+      visibility = Math.max(0, (facingRear - .05) / .95);
+      if (visibility < .08) return;
+      scaleX = .22 + visibility * .78;
+      skew = Math.sin(progress * Math.PI * 2) * .18;
+      offsetX = Math.sin(progress * Math.PI * 2) * size * .045;
+    } else {
+      const steer = state.steerVisual / 2;
+      scaleX = 1 - Math.abs(steer) * .28;
+      skew = -steer * .1;
+      offsetX = -steer * size * .034;
+    }
+
+    const plateWidth = size * .225 * scaleX;
+    const plateHeight = size * .066;
+    ctx.save();
+    ctx.globalAlpha = visibility;
+    ctx.translate(offsetX, size * .115);
+    ctx.transform(1, 0, skew, 1, 0, 0);
+    ctx.drawImage(sponsorPlate, -plateWidth / 2, -plateHeight / 2, plateWidth, plateHeight);
+    ctx.restore();
+  }
+
+  function triggerJump(fromRamp = true) {
+    const baseDuration = fromRamp ? state.jumpDuration : state.jumpDuration * .72;
+    state.jump = baseDuration * setupStats.jump;
+    state.jumpDurationCurrent = state.jump;
     state.shake = 5;
     setDriverMood('happy', 1.05);
-    showToast('AIRBORNE!', 1.05);
+    showToast(fromRamp ? 'BIG AIR!' : 'HOP!', fromRamp ? 1.05 : .62);
     if (navigator.vibrate) navigator.vibrate(35);
   }
 
@@ -410,14 +621,14 @@
     const steeringTarget = input.left ? -2 : input.right ? 2 : 0;
     state.steerVisual += (steeringTarget - state.steerVisual) * Math.min(1, dt * 9);
 
-    if (input.gas) state.speed += (155 - state.speed * .22) * dt;
+    if (input.gas) state.speed += (155 * setupStats.accel - state.speed * .22) * dt;
     else state.speed -= 9 * dt;
     if (input.brake) state.speed -= 150 * dt;
-    if (!onRoad) state.speed -= 105 * dt;
+    if (!onRoad) state.speed -= (105 / setupStats.dirt) * dt;
     if (state.spin > 0) state.speed -= 85 * dt;
     state.speed = Math.max(0, Math.min(state.maxSpeed, state.speed));
 
-    const steerPower = (.72 + speedRatio() * 1.55) * dt;
+    const steerPower = (.72 + speedRatio() * 1.55) * setupStats.grip * dt;
     if (state.spin <= 0) {
       if (input.left) state.position -= steerPower;
       if (input.right) state.position += steerPower;
@@ -428,19 +639,21 @@
     state.time += dt * 1000;
 
     if (state.previousDistance < state.nextRamp && state.distance >= state.nextRamp) {
-      if (onRoad && state.speed > 85) triggerJump();
+      if (onRoad && state.speed > 85 && state.jump === 0) triggerJump(true);
       state.nextRamp += 620;
     }
     if (state.jump > 0) {
       state.jump = Math.max(0, state.jump - dt);
       if (state.jump === 0) {
-        state.shake = 9;
+        state.shake = 9 / setupStats.jump;
         showToast('HARD LANDING!', .6);
         if (navigator.vibrate) navigator.vibrate(45);
       }
     }
     if (state.spin > 0) state.spin = Math.max(0, state.spin - dt);
     state.spinCooldown = Math.max(0, state.spinCooldown - dt);
+    state.jumpCooldown = Math.max(0, state.jumpCooldown - dt);
+    jumpButton.classList.toggle('ready', state.jumpCooldown === 0 && state.jump === 0 && state.spin === 0 && state.speed >= 25);
     if (Math.abs(state.position) > 1.42 && state.speed > 145 && state.spinCooldown === 0 && state.jump === 0) triggerSpin();
 
     const baseShake = state.speed > 220 ? (state.speed - 220) / 110 * 2.4 : 0;
@@ -479,6 +692,7 @@
 
     speedEl.textContent = Math.round(state.speed);
     distanceEl.textContent = (state.distance / 100).toFixed(1);
+    drawCourseMap();
   }
 
   function render() {
