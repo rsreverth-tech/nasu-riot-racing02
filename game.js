@@ -14,13 +14,20 @@
   const driverCard = document.querySelector('#driver-card');
   const driverFace = document.querySelector('#driver-face');
   const driverMood = document.querySelector('#driver-mood');
-  const rivalCard = document.querySelector('#rival-card');
-  const rivalFace = document.querySelector('#rival-face');
-  const rivalMood = document.querySelector('#rival-mood');
+  const driverName = document.querySelector('#driver-name');
+  const driverType = document.querySelector('#driver-type');
   const mapCanvas = document.querySelector('#map-canvas');
   const mapCtx = mapCanvas.getContext('2d');
   const lapCount = document.querySelector('#lap-count');
   const jumpButton = document.querySelector('#jump');
+  const speedNeedle = document.querySelector('#speed-needle');
+  const zoneName = document.querySelector('#zone-name');
+  const reactionPop = document.querySelector('#reaction-pop');
+  const countdownEl = document.querySelector('#countdown');
+  const itemSlot = document.querySelector('#item-slot');
+  const garagePreview = document.querySelector('#garage-car-preview');
+  const selectBack = document.querySelector('#select-back');
+  const selectContinue = document.querySelector('#select-continue');
 
   const loadImage = src => {
     const image = new Image();
@@ -37,18 +44,28 @@
     jump: ['jump-up.png', 'jump-level.png', 'jump-down.png'].map(name => loadImage(`./assets/car-v2/${name}`))
   };
   const sponsorPlate = loadImage('./assets/sponsor/reverth-plate-pixel.png');
-  const rivalCarSprite = loadImage('./assets/rival/speed-coupe.png');
+  const speedCarSprite = loadImage('./assets/rival/speed-coupe.png');
+  const nasuBackground = loadImage('./assets/course/nasushiobara-sunset.jpg');
 
-  const moods = {
-    neutral: { src: './assets/driver/president-neutral-v3.png', label: 'LOCKED IN' },
-    happy: { src: './assets/driver/president-happy-v4.png', label: 'HAHA! EAT DUST!' },
-    angry: { src: './assets/driver/president-angry-v4.png', label: 'WHAAAT?!' }
+  const drivers = {
+    president: {
+      name: 'THE PRESIDENT', type: 'PLAYER 01 · BALANCE', preview: './assets/select/hotrod-three-quarter.png',
+      moods: {
+        neutral: { src: './assets/driver/president-neutral-v3.png', label: 'LOCKED IN' },
+        happy: { src: './assets/driver/president-happy-v4.png', label: 'HAHA! EAT DUST!' },
+        angry: { src: './assets/driver/president-angry-v4.png', label: 'WHAAAT?!' }
+      }
+    },
+    speedster: {
+      name: 'THE SPEEDSTER', type: 'PLAYER 02 · SPEED', preview: './assets/select/speed-coupe-three-quarter.png',
+      moods: {
+        neutral: { src: './assets/rival/speed-rival-neutral-v2.png', label: 'ICE COLD' },
+        happy: { src: './assets/rival/speed-rival-happy-v2.png', label: 'TOO SLOW!' },
+        angry: { src: './assets/rival/speed-rival-hit-v2.png', label: 'MY GLASSES!' }
+      }
+    }
   };
-  const rivalMoods = {
-    neutral: { src: './assets/rival/speed-rival-neutral.png', label: 'ICE COLD' },
-    happy: { src: './assets/rival/speed-rival-happy.png', label: 'TOO SLOW!' },
-    angry: { src: './assets/rival/speed-rival-hit.png', label: 'MY GLASSES!' }
-  };
+  let selectedDriver = 'president';
 
   const partEffects = {
     tire: {
@@ -85,12 +102,15 @@
     running: false, speed: 0, maxSpeed: 330, position: 0, distance: 0, previousDistance: 0,
     time: 0, shake: 0, steerVisual: 0, jump: 0, jumpDuration: 1.08, jumpDurationCurrent: 1.08,
     spin: 0, spinDuration: .78, spinCooldown: 0, jumpCooldown: 0, nextRamp: 420,
-    speedCelebrated: false, toastTimer: 0
+    speedCelebrated: false, toastTimer: 0, countdown: 0, countdownMark: 0, raceActive: false,
+    nextItem: 260, itemLane: .35, roulette: 0, heldItem: '', turbo: 0, shield: 0,
+    trainHitCooldown: 0
   };
   const rival = {
     distance: 72, previousRelative: 72, speed: 190, lane: -.38, targetLane: .42,
     laneTimer: 1.7, hit: 0, collisionCooldown: 0, mood: 'neutral', moodTimer: 0
   };
+  let reactionTimer = null;
 
   let currentMood = 'neutral';
   let moodTimer = 0;
@@ -124,7 +144,8 @@
       document.querySelector(`#${id}`).style.width = `${percent}%`;
     });
     setupName.textContent = getBuildName();
-    state.maxSpeed = Math.round(330 * setupStats.topSpeed);
+    const driverTopSpeed = selectedDriver === 'speedster' ? 1.075 : 1;
+    state.maxSpeed = Math.round(330 * setupStats.topSpeed * driverTopSpeed);
     try { localStorage.setItem('nasuRiotSetup', JSON.stringify(setup)); } catch (_) {}
   }
 
@@ -185,7 +206,7 @@
   bindButton('#brake', 'brake');
 
   function requestJump() {
-    if (!state.running || state.jump > 0 || state.spin > 0 || state.jumpCooldown > 0 || state.speed < 25) return;
+    if (!state.running || !state.raceActive || state.jump > 0 || state.spin > 0 || state.jumpCooldown > 0 || state.speed < 25) return;
     state.jumpCooldown = .72;
     triggerJump(false);
   }
@@ -205,6 +226,7 @@
     a: 'left', d: 'right', w: 'gas', s: 'brake'
   };
   addEventListener('keydown', event => {
+    if (event.key.toLowerCase() === 'e') { useItem(); event.preventDefault(); return; }
     if (event.code === 'Space') {
       requestJump();
       event.preventDefault();
@@ -276,17 +298,65 @@
     thud.stop(now + .21);
   }
 
-  garageButton.addEventListener('click', () => startPanel.classList.add('garage-open'));
-  garageBack.addEventListener('click', () => startPanel.classList.remove('garage-open'));
+  function playCountTone(frequency = 330, duration = .1) {
+    if (!audioContext) return;
+    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.type = 'square'; osc.frequency.value = frequency;
+    gain.gain.setValueAtTime(.08, now); gain.gain.exponentialRampToValueAtTime(.001, now + duration);
+    osc.connect(gain); gain.connect(audioContext.destination); osc.start(now); osc.stop(now + duration);
+  }
+
+  function applyDriverSelection() {
+    const driver = drivers[selectedDriver];
+    driverName.textContent = driver.name;
+    driverType.textContent = driver.type;
+    garagePreview.src = driver.preview;
+    currentMood = '';
+    setDriverMood('neutral');
+    updateSetup();
+    try { localStorage.setItem('nasuRiotDriver', selectedDriver); } catch (_) {}
+  }
+
+  try {
+    const savedDriver = localStorage.getItem('nasuRiotDriver');
+    if (drivers[savedDriver]) selectedDriver = savedDriver;
+  } catch (_) {}
+
+  document.querySelectorAll('.driver-choice').forEach(choice => {
+    choice.classList.toggle('selected', choice.dataset.driver === selectedDriver);
+    choice.addEventListener('click', () => {
+      selectedDriver = choice.dataset.driver;
+      document.querySelectorAll('.driver-choice').forEach(item => item.classList.toggle('selected', item === choice));
+      applyDriverSelection();
+    });
+  });
+  applyDriverSelection();
+
+  garageButton.addEventListener('click', () => startPanel.classList.add('select-open'));
+  selectBack.addEventListener('click', () => startPanel.classList.remove('select-open'));
+  selectContinue.addEventListener('click', () => {
+    startPanel.classList.remove('select-open');
+    startPanel.classList.add('garage-open');
+  });
+  garageBack.addEventListener('click', () => {
+    startPanel.classList.remove('garage-open');
+    startPanel.classList.add('select-open');
+  });
 
   startButton.addEventListener('click', () => {
     updateSetup();
     state.running = true;
-    state.speed = 55;
+    state.raceActive = false;
+    state.countdown = 3.65;
+    state.countdownMark = 4;
+    state.speed = 0;
     rival.distance = 72;
     rival.previousRelative = 72;
     rival.speed = 190;
     document.querySelector('#game-shell').classList.add('running');
+    document.querySelector('#game-shell').classList.add('counting');
     startPanel.classList.add('hidden');
     startEngineAudio();
     showToast(`${getBuildName()} READY!`, 1.25);
@@ -294,6 +364,7 @@
   });
 
   function setDriverMood(mood, duration = 0) {
+    const moods = drivers[selectedDriver].moods;
     if (!moods[mood]) return;
     if (mood === currentMood) {
       if (duration) moodTimer = duration;
@@ -307,12 +378,8 @@
   }
 
   function setRivalMood(mood, duration = 0) {
-    if (!rivalMoods[mood]) return;
     rival.mood = mood;
     rival.moodTimer = duration;
-    rivalFace.src = rivalMoods[mood].src;
-    rivalMood.textContent = rivalMoods[mood].label;
-    rivalCard.className = `driver-card rival-card mood-${mood}`;
   }
 
   driverCard.addEventListener('click', () => {
@@ -326,8 +393,43 @@
     toast.classList.add('show');
   }
 
+  function showReaction(message) {
+    reactionPop.querySelector('span').textContent = message;
+    reactionPop.classList.remove('show');
+    void reactionPop.offsetWidth;
+    reactionPop.classList.add('show');
+    clearTimeout(reactionTimer);
+    reactionTimer = setTimeout(() => reactionPop.classList.remove('show'), 760);
+  }
+
+  function updateItemSlot() {
+    const labels = { turbo: ['NITRO', 'BOOST!'], shield: ['SHIELD', 'BLOCK!'], shock: ['SHOCK', 'ZAP!'] };
+    const item = labels[state.heldItem];
+    itemSlot.classList.toggle('empty', !item);
+    itemSlot.querySelector('strong').textContent = state.roulette > 0 ? ['?', '⚡', 'N₂O', '◆'][Math.floor(state.time / 75) % 4] : (item ? item[0] : '?');
+    itemSlot.querySelector('span').textContent = state.roulette > 0 ? 'ROLLING' : (item ? item[1] : 'EMPTY');
+  }
+
+  function useItem() {
+    if (!state.heldItem || state.roulette > 0 || !state.raceActive) return;
+    if (state.heldItem === 'turbo') { state.turbo = 2.1; showReaction('NITRO!'); }
+    if (state.heldItem === 'shield') { state.shield = 5; showReaction('GUARD!'); }
+    if (state.heldItem === 'shock') { rival.hit = 1; rival.speed *= .55; showReaction('ZAAAP!'); playCrashSound(); }
+    state.heldItem = '';
+    updateItemSlot();
+  }
+  itemSlot.addEventListener('click', useItem);
+  updateItemSlot();
+
   const speedRatio = () => Math.min(1, state.speed / state.maxSpeed);
   const horizonY = () => h * (.39 - speedRatio() * .075);
+  const courseProgress = () => ((state.distance % 1800) + 1800) % 1800;
+  function currentZone() {
+    const p = courseProgress();
+    if (p >= 380 && p < 790) return 'MOMIJI BRIDGE';
+    if (p >= 1020 && p < 1320) return 'SHINKANSEN CROSSING';
+    return 'NASUSHIOBARA SUNSET';
+  }
 
   function roadCurve(z) {
     const world = state.distance * 1.75;
@@ -346,10 +448,17 @@
 
   function drawSky() {
     const horizon = horizonY();
+    if (nasuBackground.complete && nasuBackground.naturalWidth) {
+      const scale = Math.max(w / nasuBackground.naturalWidth, (h * .72) / nasuBackground.naturalHeight);
+      const dw = nasuBackground.naturalWidth * scale;
+      const dh = nasuBackground.naturalHeight * scale;
+      const pan = Math.sin(state.distance * .002) * w * .035;
+      ctx.drawImage(nasuBackground, (w - dw) / 2 + pan, horizon - dh * .58, dw, dh);
+    }
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
-    sky.addColorStop(0, '#100924');
-    sky.addColorStop(.55, '#57244f');
-    sky.addColorStop(1, '#f36a27');
+    sky.addColorStop(0, 'rgba(16,9,36,.44)');
+    sky.addColorStop(.55, 'rgba(87,36,79,.2)');
+    sky.addColorStop(1, 'rgba(243,106,39,.18)');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, w, horizon + 2);
 
@@ -363,7 +472,7 @@
     ctx.fillStyle = '#f36a27';
     for (let i = 0; i < 5; i++) ctx.fillRect(sunX - sunR, sunY - sunR * .1 + i * sunR * .25, sunR * 2, 3 + i);
 
-    ctx.fillStyle = '#24142f';
+    ctx.fillStyle = 'rgba(36,20,47,.72)';
     ctx.beginPath();
     ctx.moveTo(0, horizon);
     for (let x = 0; x <= w; x += w / 10) {
@@ -374,7 +483,7 @@
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = '#120d19';
+    ctx.fillStyle = 'rgba(18,13,25,.86)';
     const base = horizon + 3;
     for (let x = -20; x < w + 30; x += 42) {
       const buildingHeight = 15 + ((x * 7) % 27 + 27) % 27;
@@ -473,6 +582,76 @@
       ctx.fill();
       ctx.restore();
     }
+  }
+
+  function drawBridgeRails() {
+    if (currentZone() !== 'MOMIJI BRIDGE') return;
+    const horizon = horizonY();
+    ctx.save();
+    ctx.strokeStyle = '#24101d';
+    ctx.lineWidth = Math.max(3, w * .006);
+    [-1, 1].forEach(side => {
+      ctx.beginPath();
+      for (let z = 145; z >= 0; z -= 5) {
+        const p = roadProjection(z, side * 1.05);
+        const y = p.y - (1 - z / 150) * h * .11;
+        if (z === 145) ctx.moveTo(p.x, y); else ctx.lineTo(p.x, y);
+      }
+      ctx.stroke();
+    });
+    for (let z = 140; z > 4; z -= 13) {
+      [-1, 1].forEach(side => {
+        const a = roadProjection(z, side * 1.05);
+        const b = roadProjection(Math.max(0, z - 7), side * 1.05);
+        ctx.lineWidth = Math.max(1, a.p * 5);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y - a.p * h * .11); ctx.lineTo(b.x, b.y); ctx.stroke();
+      });
+    }
+    ctx.fillStyle = '#ff5526';
+    ctx.fillRect(w * .12, horizon - h * .17, w * .035, h * .25);
+    ctx.fillRect(w * .845, horizon - h * .17, w * .035, h * .25);
+    ctx.restore();
+  }
+
+  function trainPhase() { return (state.time * .00032) % 1; }
+  function drawTrainCrossing() {
+    if (currentZone() !== 'SHINKANSEN CROSSING') return;
+    const progress = courseProgress();
+    const distanceTo = 1170 - progress;
+    if (distanceTo < -35 || distanceTo > 150) return;
+    const point = roadProjection(Math.max(2, distanceTo));
+    const scale = .25 + point.p * 1.25;
+    const phase = trainPhase();
+    const trainX = -w * .75 + phase * w * 2.5;
+    ctx.save();
+    ctx.translate(0, point.y - 48 * scale);
+    ctx.fillStyle = '#20212a';
+    ctx.fillRect(0, 35 * scale, w, 5 * scale);
+    ctx.fillStyle = '#f3f2e9';
+    ctx.beginPath();
+    ctx.moveTo(trainX, 0); ctx.lineTo(trainX + 430 * scale, 0); ctx.quadraticCurveTo(trainX + 500 * scale, 12 * scale, trainX + 525 * scale, 34 * scale); ctx.lineTo(trainX, 34 * scale); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#164982'; ctx.fillRect(trainX + 45 * scale, 18 * scale, 420 * scale, 7 * scale);
+    ctx.fillStyle = '#d7242e'; ctx.fillRect(trainX + 30 * scale, 27 * scale, 455 * scale, 3 * scale);
+    ctx.fillStyle = '#111a27';
+    for (let x = 70; x < 430; x += 35) ctx.fillRect(trainX + x * scale, 7 * scale, 22 * scale, 8 * scale);
+    ctx.strokeStyle = '#fff225'; ctx.lineWidth = 4 * scale;
+    [-1,1].forEach(side => { const px = point.x + side * point.roadWidth * 1.08; ctx.beginPath(); ctx.moveTo(px, 44 * scale); ctx.lineTo(px, -42 * scale); ctx.stroke(); });
+    ctx.restore();
+  }
+
+  function drawItemPickup() {
+    const distanceTo = state.nextItem - state.distance;
+    if (distanceTo <= 0 || distanceTo > 150) return;
+    const p = roadProjection(distanceTo, state.itemLane * .6);
+    const size = 7 + p.p * 55;
+    ctx.save();
+    ctx.translate(p.x, p.y - size * .75);
+    ctx.rotate(state.time * .004);
+    ctx.fillStyle = '#65eff2'; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(2,size*.08);
+    ctx.beginPath(); ctx.moveTo(0,-size*.62); ctx.lineTo(size*.5,0); ctx.lineTo(0,size*.62); ctx.lineTo(-size*.5,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.rotate(-state.time * .004);
+    ctx.fillStyle = '#ff1c83'; ctx.font = `900 ${size*.72}px Impact`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('?',0,0);
+    ctx.restore();
   }
 
   function drawRamp() {
@@ -603,7 +782,8 @@
 
   function drawRival() {
     const relative = rival.distance - state.distance;
-    if (relative <= 1 || relative > 150 || !rivalCarSprite.complete || !rivalCarSprite.naturalWidth) return;
+    const rivalSprite = selectedDriver === 'president' ? speedCarSprite : carSprites.steering[2];
+    if (relative <= 1 || relative > 150 || !rivalSprite.complete || !rivalSprite.naturalWidth) return;
     const point = roadProjection(relative, rival.lane * .58);
     const size = 18 + point.p * Math.min(210, h * .48);
     const hitProgress = rival.hit > 0 ? 1 - rival.hit : 0;
@@ -613,7 +793,7 @@
       ctx.translate(Math.sin(hitProgress * 34) * size * .08, 0);
       ctx.rotate(Math.sin(hitProgress * 24) * .24);
     }
-    ctx.drawImage(rivalCarSprite, -size / 2, -size / 2, size, size);
+    ctx.drawImage(rivalSprite, -size / 2, -size / 2, size, size);
     if (rival.hit > 0) {
       ctx.strokeStyle = '#fff229';
       ctx.lineWidth = Math.max(2, size * .025);
@@ -631,6 +811,7 @@
   }
 
   function currentCarSprite() {
+    if (selectedDriver === 'speedster') return speedCarSprite;
     if (state.spin > 0) {
       const progress = 1 - state.spin / state.spinDuration;
       return carSprites.spin[Math.floor(progress * carSprites.spin.length) % carSprites.spin.length];
@@ -699,6 +880,7 @@
     state.shake = 5;
     setDriverMood('happy', 1.05);
     showToast(fromRamp ? 'BIG AIR!' : 'HOP!', fromRamp ? 1.05 : .62);
+    if (fromRamp) showReaction('BIG AIR!');
     if (navigator.vibrate) navigator.vibrate(35);
   }
 
@@ -709,10 +891,14 @@
     state.shake = 15;
     setDriverMood('angry', 1.15);
     showToast('WILD SPIN!', 1.05);
+    showReaction('WHOA!!');
     if (navigator.vibrate) navigator.vibrate([45, 35, 65]);
   }
 
   function triggerRivalCollision() {
+    if (state.shield > 0) {
+      rival.hit = 1; rival.speed *= .55; state.shake = 10; showReaction('BLOCK!'); playCrashSound(); return;
+    }
     rival.hit = 1;
     rival.collisionCooldown = 1.25;
     rival.speed *= .68;
@@ -722,6 +908,7 @@
     setDriverMood('angry', 1.25);
     setRivalMood('angry', 1.35);
     showToast('KRAAASH!!', 1.05);
+    showReaction('KRAAASH!!');
     playCrashSound();
     if (navigator.vibrate) navigator.vibrate([70, 30, 100]);
   }
@@ -760,10 +947,12 @@
       setDriverMood('happy', 1.3);
       setRivalMood('angry', 1.3);
       showToast('OVERTAKE!', .95);
+      showReaction('PASS!!');
     } else if (rival.previousRelative < -3 && relative >= 3) {
       setDriverMood('angry', 1.2);
       setRivalMood('happy', 1.35);
       showToast('HE BLEW PAST!', .95);
+      showReaction('TOO SLOW!');
     }
 
     if (relative < -135) {
@@ -778,17 +967,36 @@
 
   function update(dt) {
     if (!state.running) return;
+    state.time += dt * 1000;
+    if (!state.raceActive) {
+      state.countdown -= dt;
+      const mark = state.countdown > .58 ? Math.max(1, Math.floor(state.countdown)) : 0;
+      if (mark !== state.countdownMark) {
+        state.countdownMark = mark;
+        countdownEl.textContent = mark ? String(mark) : 'START!';
+        countdownEl.classList.remove('show'); void countdownEl.offsetWidth; countdownEl.classList.add('show');
+        playCountTone(mark ? 300 + (3 - mark) * 70 : 660, mark ? .1 : .24);
+      }
+      if (state.countdown <= 0) {
+        state.raceActive = true; state.speed = 55;
+        countdownEl.classList.remove('show');
+        document.querySelector('#game-shell').classList.remove('counting');
+        showReaction('GO!!');
+      }
+      return;
+    }
     state.previousDistance = state.distance;
     const onRoad = Math.abs(state.position) < 1.04;
     const steeringTarget = input.left ? -2 : input.right ? 2 : 0;
     state.steerVisual += (steeringTarget - state.steerVisual) * Math.min(1, dt * 9);
 
     if (input.gas) state.speed += (155 * setupStats.accel - state.speed * .22) * dt;
+    if (state.turbo > 0) state.speed += 125 * dt;
     else state.speed -= 9 * dt;
     if (input.brake) state.speed -= 150 * dt;
     if (!onRoad) state.speed -= (105 / setupStats.dirt) * dt;
     if (state.spin > 0) state.speed -= 85 * dt;
-    state.speed = Math.max(0, Math.min(state.maxSpeed, state.speed));
+    state.speed = Math.max(0, Math.min(state.maxSpeed * (state.turbo > 0 ? 1.15 : 1), state.speed));
 
     const steerPower = (.72 + speedRatio() * 1.55) * setupStats.grip * dt;
     if (state.spin <= 0) {
@@ -798,8 +1006,32 @@
     state.position += roadCurve(0) * speedRatio() * .25 * dt;
     state.position = Math.max(-1.62, Math.min(1.62, state.position));
     state.distance += state.speed * dt / 5.2;
-    state.time += dt * 1000;
     updateRival(dt);
+
+    if (state.previousDistance < state.nextItem && state.distance >= state.nextItem) {
+      if (Math.abs(state.position - state.itemLane) < .55) {
+        state.roulette = 1.05; state.heldItem = ''; showReaction('ITEM!');
+      }
+      state.nextItem += 360 + Math.random() * 160;
+      state.itemLane = -.75 + Math.random() * 1.5;
+    }
+    if (state.roulette > 0) {
+      state.roulette = Math.max(0,state.roulette-dt);
+      if (state.roulette === 0) {
+        const items = ['turbo','shield','shock']; state.heldItem = items[Math.floor(Math.random()*items.length)];
+        showReaction(state.heldItem.toUpperCase() + '!');
+      }
+      updateItemSlot();
+    }
+    state.turbo = Math.max(0,state.turbo-dt);
+    state.shield = Math.max(0,state.shield-dt);
+    state.trainHitCooldown = Math.max(0,state.trainHitCooldown-dt);
+
+    const zoneProgress = courseProgress();
+    const trainDanger = currentZone() === 'SHINKANSEN CROSSING' && Math.abs(zoneProgress - 1170) < 9 && trainPhase() > .18 && trainPhase() < .8;
+    if (trainDanger && state.jump === 0 && state.trainHitCooldown === 0) {
+      state.trainHitCooldown = 3; state.speed *= .18; triggerSpin(); playCrashSound(); showReaction('WHAAAM!!');
+    }
 
     if (state.previousDistance < state.nextRamp && state.distance >= state.nextRamp) {
       if (onRoad && state.speed > 85 && state.jump === 0) triggerJump(true);
@@ -854,7 +1086,9 @@
     }
 
     speedEl.textContent = Math.round(state.speed);
+    speedNeedle.style.transform = `rotate(${-125 + speedRatio() * 250}deg)`;
     distanceEl.textContent = (state.distance / 100).toFixed(1);
+    zoneName.textContent = currentZone();
     drawCourseMap();
   }
 
@@ -863,8 +1097,11 @@
     if (state.shake > 0) ctx.translate((Math.random() - .5) * state.shake, (Math.random() - .5) * state.shake);
     drawSky();
     drawRoad();
+    drawBridgeRails();
     drawRamp();
     drawRoadside();
+    drawTrainCrossing();
+    drawItemPickup();
     drawRival();
     drawSpeedLines();
     drawCar();

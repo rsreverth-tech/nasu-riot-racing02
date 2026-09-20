@@ -21,10 +21,18 @@ button { font: inherit; }
 .brand { color: #fff4da; font-style: italic; letter-spacing: .04em; font-size: clamp(1rem, 3.2vw, 1.65rem); transform: skew(-5deg); }
 .brand span { color: #ff4b12; }
 .brand small { display: block; color: #f8c52b; font: 700 .64rem/1.2 ui-monospace, monospace; letter-spacing: .18em; }
-.meters { display: flex; gap: 18px; text-align: right; }
-.meters div { display: grid; }
-.meters strong { color: #fff; font-size: clamp(1.2rem, 5vw, 2rem); line-height: .9; }
-.meters span { color: #f8c52b; font: 800 .65rem/1.3 ui-monospace, monospace; letter-spacing: .08em; }
+.meters { display: flex; gap: 10px; align-items: flex-start; text-align: right; }
+.speedometer { position: relative; width: clamp(82px,12vw,122px); aspect-ratio: 1; display: grid; place-items: center; border: 5px solid #c9c4b9; border-radius: 50%; background: radial-gradient(circle,#1c1820 0 52%,#08070a 54% 63%,#9b9184 65% 68%,#22151e 70%); box-shadow: inset 0 0 0 3px #4e4548,0 4px 0 #080408,0 0 16px rgba(255,77,18,.35); transform: rotate(-2deg); }
+.speedometer-ticks { position:absolute; inset:7px; border-radius:50%; background: repeating-conic-gradient(from -125deg,#fff2cf 0 2deg,transparent 2deg 13deg); mask: radial-gradient(circle,transparent 0 70%,#000 72%); -webkit-mask: radial-gradient(circle,transparent 0 70%,#000 72%); }
+.speedometer::after { content:"0  330"; position:absolute; left:14px; right:12px; bottom:24%; color:#ff6a2c; font:800 .45rem/1 ui-monospace,monospace; letter-spacing:.12em; }
+.speedometer i { position:absolute; z-index:2; left:50%; bottom:50%; width:3px; height:34%; background:#ff3b16; transform-origin:50% 100%; transform:rotate(-125deg); box-shadow:0 0 5px #ff6b32; transition:transform .08s linear; }
+.speedometer b { position:absolute; z-index:3; width:10px; height:10px; border:3px solid #ddd2c1; border-radius:50%; background:#17090d; }
+.speedometer strong { z-index:4; align-self:end; margin-bottom:15%; color:#fff; font:900 clamp(.85rem,2.1vw,1.15rem)/1 ui-monospace,monospace; }
+.speedometer small { position:absolute; bottom:8%; color:#f8c52b; font:800 .43rem/1 ui-monospace,monospace; letter-spacing:.12em; }
+.distance-meter { display:grid; padding-top:4px; }
+.distance-meter strong { color:#fff; font-size:clamp(1.15rem,4vw,1.8rem); line-height:.9; }
+.distance-meter span { color:#f8c52b; font:800 .65rem/1.3 ui-monospace,monospace; letter-spacing:.08em; }
+.distance-meter small { margin-top:5px; color:#65e2dc; font:800 .48rem/1.2 ui-monospace,monospace; letter-spacing:.08em; max-width:92px; }
 
 .driver-card {
   position: absolute; z-index: 4; right: max(14px, env(safe-area-inset-right)); top: 25%;
@@ -50,18 +58,23 @@ button { font: inherit; }
 @keyframes portrait-hit { 0%,100% { transform: translate(0,0) skew(-2deg) scale(1.06); } 35% { transform: translate(-8px,3px) skew(-5deg) scale(1.09); } 70% { transform: translate(7px,-2px) skew(2deg) scale(1.09); } }
 @keyframes portrait-flash { 0% { opacity: .65; } 100% { opacity: 0; } }
 
-.rival-card {
-  right: calc(max(14px, env(safe-area-inset-right)) + clamp(102px, 15vw, 160px));
-  width: clamp(78px, 11vw, 116px); border-color: #ff3ec8;
-  background: linear-gradient(145deg, rgba(21,6,34,.96), rgba(88,8,74,.9));
-}
-.rival-card .rival-frame { background: #6a087e; border-color: #ff9de7; }
-.rival-card p { color: #ff6ed9; }
-.rival-card small { color: #73f4ff; }
-.rival-card.mood-neutral { transform: skew(2deg); }
-.rival-card.mood-happy { border-color: #73f4ff; }
-.rival-card.mood-angry { border-color: #fff225; }
-#game-shell:not(.running) .rival-card { opacity: 0; visibility: hidden; }
+.item-slot { position:absolute; z-index:4; right:max(14px,env(safe-area-inset-right)); top:calc(25% + clamp(165px,22vw,218px)); width:clamp(92px,14vw,148px); min-height:58px; border:3px solid #ff3ec8; color:#fff; background:linear-gradient(145deg,#220b29,#680d5c); box-shadow:5px 5px 0 rgba(0,0,0,.55); transform:skew(-3deg); cursor:pointer; }
+.item-slot small,.item-slot span { display:block; font:800 .48rem/1 ui-monospace,monospace; letter-spacing:.12em; color:#65e2dc; }
+.item-slot strong { display:block; color:#fff225; font-size:1.35rem; line-height:1; text-shadow:2px 2px #000; }
+.item-slot.empty { filter:grayscale(.7); opacity:.72; }
+#game-shell:not(.running) .item-slot { opacity:0; visibility:hidden; }
+
+.reaction-pop { position:absolute; z-index:8; left:50%; top:31%; width:clamp(180px,30vw,330px); aspect-ratio:1.7; display:grid; place-items:center; opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(.15) rotate(-8deg); }
+.reaction-pop::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 30% 25%,#fff 0 2px,transparent 2.5px) 0 0/10px 10px,#ffd326; clip-path:polygon(50% 0,58% 20%,73% 7%,76% 27%,100% 24%,82% 44%,98% 58%,75% 62%,80% 88%,58% 75%,48% 100%,41% 75%,17% 91%,23% 65%,0 58%,20% 43%,4% 26%,29% 28%,30% 6%,44% 22%); filter:drop-shadow(8px 8px 0 #000); }
+.reaction-pop span { z-index:1; color:#ff1673; font:italic 900 clamp(2.2rem,8vw,5.2rem)/.8 Impact,sans-serif; letter-spacing:-.04em; -webkit-text-stroke:clamp(2px,.45vw,5px) #000; text-shadow:8px 9px 0 #000,11px 12px 0 #fff; transform:skew(-9deg) rotate(-4deg); }
+.reaction-pop.show { animation:reaction-pop .72s cubic-bezier(.15,1.25,.3,1) forwards; }
+@keyframes reaction-pop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.1) rotate(-14deg)} 22%,72%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-4deg)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.25) rotate(3deg)} }
+.countdown { position:absolute; z-index:9; inset:0; display:grid; place-items:center; color:#fff225; font:italic 900 clamp(7rem,28vw,16rem)/1 Impact,sans-serif; -webkit-text-stroke:clamp(4px,1vw,10px) #180511; text-shadow:10px 10px 0 #ff3b16; opacity:0; pointer-events:none; }
+.countdown.show { opacity:1; animation:count-punch .32s ease-out; }
+@keyframes count-punch { from{transform:scale(1.8) rotate(-8deg);filter:brightness(2)} to{transform:scale(1) rotate(-2deg);filter:none} }
+.start-girls { position:absolute; z-index:5; left:0; bottom:10%; width:100%; height:auto; opacity:0; pointer-events:none; filter:drop-shadow(0 8px 2px rgba(0,0,0,.7)); transform:scale(1.03); }
+#game-shell.counting .start-girls { opacity:1; animation:flag-bounce .28s steps(2,end) infinite; }
+@keyframes flag-bounce { 50%{transform:translateY(-7px) scale(1.03)} }
 
 .course-map {
   position: absolute; z-index: 3; left: max(14px, env(safe-area-inset-left)); top: 22%;
@@ -84,7 +97,7 @@ button { font: inherit; }
 }
 .start-panel.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 .intro-view { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.start-panel.garage-open .intro-view { display: none; }
+.start-panel.select-open .intro-view,.start-panel.garage-open .intro-view { display: none; }
 .eyebrow { margin: 0 0 10px; color: #f8c52b; font: 800 clamp(.68rem, 2.5vw, .95rem)/1.3 ui-monospace, monospace; letter-spacing: .16em; }
 h1 { margin: 0; color: #fff4da; font-size: clamp(3.25rem, 13vw, 7rem); line-height: .75; letter-spacing: -.04em; font-style: italic; text-shadow: 5px 5px 0 #431445, 9px 9px 0 #0a050c; transform: skew(-5deg); }
 h1 em { color: #ff4b12; font-style: inherit; }
@@ -92,6 +105,26 @@ h1 em { color: #ff4b12; font-style: inherit; }
 .menu-main-button { min-width: 220px; padding: 15px 28px; border: 3px solid #fff1c4; border-radius: 5px; color: #160613; background: #f8c52b; box-shadow: 6px 6px 0 #ff4b12; letter-spacing: .09em; font-size: 1.15rem; transform: skew(-5deg); }
 .menu-main-button:active { transform: translate(4px,4px) skew(-5deg); box-shadow: 2px 2px 0 #ff4b12; }
 .rotate-note { color: #bb9db9; font: 700 .72rem/1.4 system-ui, sans-serif; }
+
+.select-view { display:none; width:min(1120px,100%); max-height:690px; text-align:left; }
+.start-panel.select-open .select-view { display:block; }
+.start-panel.garage-open .select-view { display:none; }
+.select-head { display:flex; justify-content:space-between; align-items:end; gap:20px; padding-bottom:10px; border-bottom:3px solid #ff4b12; }
+.select-head h2 { margin:0; color:#fff4da; font-size:clamp(2rem,6vw,4rem); line-height:.85; font-style:italic; transform:skew(-4deg); }
+.select-head img { width:clamp(120px,18vw,220px); max-height:70px; object-fit:contain; filter:drop-shadow(3px 3px 0 #fff1c4); }
+.driver-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 0; }
+.driver-choice { position:relative; min-height:clamp(235px,43vh,390px); overflow:hidden; border:3px solid #61435f; color:#fff4da; background:radial-gradient(circle at 58% 43%,#4f2354,#140916 68%); cursor:pointer; }
+.driver-choice::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(135deg,transparent 0 18px,rgba(255,255,255,.035) 18px 20px); pointer-events:none; }
+.driver-choice.selected { border-color:#f8c52b; box-shadow:inset 0 0 0 3px #ff4b12,7px 7px 0 #0b040b; }
+.choice-number { position:absolute; left:10px; top:7px; color:#ff4b12; font:italic 900 clamp(2rem,5vw,4rem)/1 Impact,sans-serif; }
+.choice-car { position:absolute; z-index:1; left:7%; top:2%; width:86%; height:72%; object-fit:contain; filter:drop-shadow(0 12px 7px rgba(0,0,0,.75)); }
+.choice-face { position:absolute; z-index:2; right:7px; top:7px; width:clamp(70px,10vw,112px); aspect-ratio:1; object-fit:cover; border:3px solid #fff1c4; background:#087c7e; image-rendering:pixelated; }
+.choice-copy { position:absolute; z-index:3; left:0; right:0; bottom:0; padding:10px 13px; background:linear-gradient(90deg,#120812 50%,rgba(18,8,18,.75)); border-top:3px solid #ff4b12; transform:skew(-2deg); }
+.choice-copy strong,.choice-copy small { display:block; }
+.choice-copy strong { font-size:clamp(1rem,2.6vw,1.7rem); }
+.choice-copy small { color:#65e2dc; font:800 .6rem/1.4 ui-monospace,monospace; letter-spacing:.08em; }
+.select-actions { display:flex; justify-content:space-between; gap:12px; }
+#select-back { padding:10px 16px; border:2px solid #947f92; color:#fff4da; background:#251426; }
 
 .garage-view { display: none; width: min(1100px, 100%); height: 100%; max-height: 680px; text-align: left; min-height: 0; }
 .start-panel.garage-open .garage-view { display: flex; flex-direction: column; }
@@ -102,7 +135,7 @@ h1 em { color: #ff4b12; font-style: inherit; }
 .garage-layout { display: grid; grid-template-columns: minmax(150px,.62fr) minmax(0,1.7fr); gap: 14px; flex: 1; min-height: 0; padding: 10px 0; }
 .garage-machine { position: relative; min-height: 0; overflow: hidden; border: 3px solid #65e2dc; background: radial-gradient(circle at 50% 48%, #235d60 0 28%, #0c151d 70%); box-shadow: inset 0 0 0 2px rgba(255,255,255,.08); }
 .garage-machine::before { content: "DYNO BAY 01"; position: absolute; left: 9px; top: 8px; color: #65e2dc; font: 800 .58rem/1 ui-monospace,monospace; letter-spacing: .12em; }
-.garage-car-preview { display: block; width: min(86%, 310px); aspect-ratio: 1; object-fit: contain; margin: -3% auto -12%; image-rendering: pixelated; filter: drop-shadow(0 12px 8px rgba(0,0,0,.55)); }
+.garage-car-preview { display:block; width:min(96%,380px); aspect-ratio:1.35; object-fit:contain; margin:5% auto -2%; image-rendering:auto; filter:drop-shadow(0 12px 8px rgba(0,0,0,.55)); }
 .garage-sponsor { position: absolute; right: 7px; top: 7px; display: grid; justify-items: end; gap: 3px; }
 .garage-sponsor small { color: #f8c52b; font: 800 .48rem/1 ui-monospace,monospace; letter-spacing: .08em; }
 .garage-sponsor img { display: block; width: clamp(70px,9vw,104px); height: auto; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 #000); }
@@ -155,14 +188,23 @@ h1 em { color: #ff4b12; font-style: inherit; }
   .setup-group { padding: 4px; gap: 4px; }
   .setup-group button { padding: 4px 3px; }
   .garage-actions .menu-main-button { min-width: 180px; padding: 9px 20px; }
+  .select-head { padding-bottom:5px; }
+  .select-head .eyebrow { margin-bottom:1px; }
+  .select-head h2 { font-size:2rem; }
+  .select-head img { width:125px; max-height:40px; }
+  .driver-grid { gap:10px; padding:8px 0; }
+  .driver-choice { min-height:210px; }
+  .choice-car { top:-4%; height:78%; }
+  .choice-face { width:68px; }
+  .select-actions .menu-main-button { min-width:180px; padding:9px 18px; }
   .driver-card { top: 21%; width: 86px; padding: 5px; }
-  .rival-card { right: 108px; top: 21%; width: 72px; }
+  .item-slot { top:calc(21% + 120px); width:86px; }
   .course-map { top: 18%; width: 82px; padding: 4px; }
 }
 
 @media (orientation: portrait) {
   .driver-card { top: 18%; width: 92px; }
-  .rival-card { right: 116px; top: 18%; width: 76px; }
+  .item-slot { top:calc(18% + 138px); width:92px; }
   .course-map { top: 18%; width: 88px; }
   .start-panel { justify-content: flex-start; overflow-y: auto; }
   .intro-view { min-height: 100%; }
@@ -172,4 +214,6 @@ h1 em { color: #ff4b12; font-style: inherit; }
   .garage-machine { min-height: 330px; }
   .setup-list { overflow: visible; }
   .garage-actions { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .driver-grid { grid-template-columns:1fr; }
+  .driver-choice { min-height:260px; }
 }

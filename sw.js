@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nasu-riot-racing-v8';
+const CACHE_NAME = 'nasu-riot-racing-v9';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -11,10 +11,15 @@ const CORE_ASSETS = [
   './assets/driver/president-happy-v4.png',
   './assets/driver/president-angry-v4.png',
   './assets/sponsor/reverth-plate-pixel.png',
-  './assets/rival/speed-rival-neutral.png',
-  './assets/rival/speed-rival-happy.png',
-  './assets/rival/speed-rival-hit.png',
+  './assets/sponsor/reverth-logo.png',
+  './assets/rival/speed-rival-neutral-v2.png',
+  './assets/rival/speed-rival-happy-v2.png',
+  './assets/rival/speed-rival-hit-v2.png',
   './assets/rival/speed-coupe.png',
+  './assets/select/hotrod-three-quarter.png',
+  './assets/select/speed-coupe-three-quarter.png',
+  './assets/ui/start-flag-women.png',
+  './assets/course/nasushiobara-sunset.jpg',
   './assets/car-v2/steer-hard-left.png',
   './assets/car-v2/steer-left.png',
   './assets/car-v2/steer-center.png',
