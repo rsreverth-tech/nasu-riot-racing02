@@ -28,6 +28,15 @@
   const garagePreview = document.querySelector('#garage-car-preview');
   const selectBack = document.querySelector('#select-back');
   const selectContinue = document.querySelector('#select-continue');
+  const courseBack = document.querySelector('#course-back');
+  const courseContinue = document.querySelector('#course-continue');
+  const menuButton = document.querySelector('#menu-button');
+  const pauseMenu = document.querySelector('#pause-menu');
+  const resumeButton = document.querySelector('#resume-button');
+  const restartButton = document.querySelector('#restart-button');
+  const titleButton = document.querySelector('#title-button');
+  const volumeControl = document.querySelector('#volume-control');
+  const startGirls = document.querySelector('#start-girls');
 
   const loadImage = src => {
     const image = new Image();
@@ -46,6 +55,8 @@
   const sponsorPlate = loadImage('./assets/sponsor/reverth-plate-pixel.png');
   const speedCarSprite = loadImage('./assets/rival/speed-coupe.png');
   const nasuBackground = loadImage('./assets/course/nasushiobara-sunset.jpg');
+  const utsunomiyaBackground = loadImage('./assets/course/utsunomiya-sunset.jpg');
+  const dogCarSprite = loadImage('./assets/car-dog/rear.png');
 
   const drivers = {
     president: {
@@ -63,9 +74,18 @@
         happy: { src: './assets/rival/speed-rival-happy-v2.png', label: 'TOO SLOW!' },
         angry: { src: './assets/rival/speed-rival-hit-v2.png', label: 'MY GLASSES!' }
       }
+    },
+    dog: {
+      name: 'GOLDEN ACE', type: 'PLAYER 03 · OFF ROAD', preview: './assets/select/dog-offroad-three-quarter.png',
+      moods: {
+        neutral: { src: './assets/driver/dog/dog-neutral.png', label: 'READY TO RUN!' },
+        happy: { src: './assets/driver/dog/dog-happy.png', label: 'WOOF! WOOF!!' },
+        angry: { src: './assets/driver/dog/dog-hit.png', label: 'ARF?!' }
+      }
     }
   };
   let selectedDriver = 'president';
+  let selectedCourse = 'nasu';
 
   const partEffects = {
     tire: {
@@ -104,7 +124,7 @@
     spin: 0, spinDuration: .78, spinCooldown: 0, jumpCooldown: 0, nextRamp: 420,
     speedCelebrated: false, toastTimer: 0, countdown: 0, countdownMark: 0, raceActive: false,
     nextItem: 260, itemLane: .35, roulette: 0, heldItem: '', turbo: 0, shield: 0,
-    trainHitCooldown: 0
+    trainHitCooldown: 0, rescue: 0, paused: false
   };
   const rival = {
     distance: 72, previousRelative: 72, speed: 190, lane: -.38, targetLane: .42,
@@ -122,6 +142,9 @@
   let engineOsc = null;
   let enginePulse = null;
   let engineGain = null;
+  let masterGain = null;
+  let musicGain = null;
+  let musicTimer = null;
 
   function getBuildName() {
     if (setup.suspension === 'baja' && setup.tire === 'allterrain') return 'DIRT DEVIL';
@@ -138,6 +161,9 @@
       const effects = partEffects[group][choice];
       Object.entries(effects).forEach(([stat, value]) => { setupStats[stat] += value; });
     });
+    if (selectedDriver === 'dog') {
+      setupStats.topSpeed -= .04; setupStats.grip += .05; setupStats.dirt += .18; setupStats.jump += .14;
+    }
     const barIds = { topSpeed: 'stat-speed', accel: 'stat-accel', grip: 'stat-grip', dirt: 'stat-dirt', jump: 'stat-jump' };
     Object.entries(barIds).forEach(([stat, id]) => {
       const percent = Math.max(12, Math.min(100, 50 + (setupStats[stat] - 1) * 210));
@@ -247,6 +273,12 @@
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     audioContext = new AudioCtx();
+    masterGain = audioContext.createGain();
+    musicGain = audioContext.createGain();
+    masterGain.gain.value = Number(volumeControl.value) / 100;
+    musicGain.gain.value = .16;
+    musicGain.connect(masterGain);
+    masterGain.connect(audioContext.destination);
     engineOsc = audioContext.createOscillator();
     enginePulse = audioContext.createOscillator();
     engineGain = audioContext.createGain();
@@ -259,9 +291,38 @@
     engineOsc.connect(filter);
     enginePulse.connect(filter);
     filter.connect(engineGain);
-    engineGain.connect(audioContext.destination);
+    engineGain.connect(masterGain);
     engineOsc.start();
     enginePulse.start();
+    startHotRodMusic();
+  }
+
+  function musicNote(frequency, when, duration, type = 'sawtooth', level = .08) {
+    if (!audioContext || !musicGain) return;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(frequency, when);
+    gain.gain.setValueAtTime(level, when); gain.gain.exponentialRampToValueAtTime(.001, when + duration);
+    osc.connect(gain); gain.connect(musicGain); osc.start(when); osc.stop(when + duration);
+  }
+
+  function scheduleHotRodBar() {
+    if (!audioContext) return;
+    const start = audioContext.currentTime + .04;
+    const beat = .19;
+    const bass = [82.4,82.4,110,82.4,123.5,110,82.4,73.4];
+    bass.forEach((note,index) => {
+      musicNote(note,start+index*beat,beat*.82,'square',.075);
+      musicNote(note*2,start+index*beat,beat*.42,'sawtooth',.028);
+      if (index%2===0) musicNote(55,start+index*beat,.06,'triangle',.12);
+      if (index%2===1) musicNote(220,start+index*beat,.045,'square',.025);
+    });
+  }
+
+  function startHotRodMusic() {
+    if (musicTimer) return;
+    scheduleHotRodBar();
+    musicTimer = setInterval(scheduleHotRodBar,1520);
   }
 
   function playCrashSound() {
@@ -282,7 +343,7 @@
     crashGain.gain.exponentialRampToValueAtTime(.001, now + .24);
     noise.connect(filter);
     filter.connect(crashGain);
-    crashGain.connect(audioContext.destination);
+    crashGain.connect(masterGain || audioContext.destination);
     noise.start(now);
 
     const thud = audioContext.createOscillator();
@@ -293,7 +354,7 @@
     thudGain.gain.setValueAtTime(.16, now);
     thudGain.gain.exponentialRampToValueAtTime(.001, now + .2);
     thud.connect(thudGain);
-    thudGain.connect(audioContext.destination);
+    thudGain.connect(masterGain || audioContext.destination);
     thud.start(now);
     thud.stop(now + .21);
   }
@@ -305,7 +366,7 @@
     const gain = audioContext.createGain();
     osc.type = 'square'; osc.frequency.value = frequency;
     gain.gain.setValueAtTime(.08, now); gain.gain.exponentialRampToValueAtTime(.001, now + duration);
-    osc.connect(gain); gain.connect(audioContext.destination); osc.start(now); osc.stop(now + duration);
+    osc.connect(gain); gain.connect(masterGain || audioContext.destination); osc.start(now); osc.stop(now + duration);
   }
 
   function applyDriverSelection() {
@@ -322,6 +383,8 @@
   try {
     const savedDriver = localStorage.getItem('nasuRiotDriver');
     if (drivers[savedDriver]) selectedDriver = savedDriver;
+    const savedCourse = localStorage.getItem('tochigiRiotCourse');
+    if (['nasu','utsunomiya'].includes(savedCourse)) selectedCourse = savedCourse;
   } catch (_) {}
 
   document.querySelectorAll('.driver-choice').forEach(choice => {
@@ -334,8 +397,25 @@
   });
   applyDriverSelection();
 
-  garageButton.addEventListener('click', () => startPanel.classList.add('select-open'));
-  selectBack.addEventListener('click', () => startPanel.classList.remove('select-open'));
+  document.querySelectorAll('.course-choice').forEach(choice => {
+    choice.classList.toggle('selected', choice.dataset.course === selectedCourse);
+    choice.addEventListener('click', () => {
+      selectedCourse = choice.dataset.course;
+      document.querySelectorAll('.course-choice').forEach(item => item.classList.toggle('selected', item === choice));
+      try { localStorage.setItem('tochigiRiotCourse', selectedCourse); } catch (_) {}
+    });
+  });
+
+  garageButton.addEventListener('click', () => startPanel.classList.add('course-open'));
+  courseBack.addEventListener('click', () => startPanel.classList.remove('course-open'));
+  courseContinue.addEventListener('click', () => {
+    startPanel.classList.remove('course-open');
+    startPanel.classList.add('select-open');
+  });
+  selectBack.addEventListener('click', () => {
+    startPanel.classList.remove('select-open');
+    startPanel.classList.add('course-open');
+  });
   selectContinue.addEventListener('click', () => {
     startPanel.classList.remove('select-open');
     startPanel.classList.add('garage-open');
@@ -345,13 +425,16 @@
     startPanel.classList.add('select-open');
   });
 
-  startButton.addEventListener('click', () => {
+  function resetRace() {
     updateSetup();
     state.running = true;
     state.raceActive = false;
     state.countdown = 3.65;
     state.countdownMark = 4;
     state.speed = 0;
+    state.position = 0; state.distance = 0; state.previousDistance = 0; state.nextRamp = 420;
+    state.nextItem = 260; state.itemLane = .35; state.heldItem = ''; state.roulette = 0;
+    state.spin = 0; state.jump = 0; state.rescue = 0; state.paused = false;
     rival.distance = 72;
     rival.previousRelative = 72;
     rival.speed = 190;
@@ -361,6 +444,24 @@
     startEngineAudio();
     showToast(`${getBuildName()} READY!`, 1.25);
     if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(() => {});
+  }
+
+  startButton.addEventListener('click', () => {
+    resetRace();
+  });
+
+  function setPause(open) {
+    if (!state.running) return;
+    state.paused = open;
+    pauseMenu.classList.toggle('open',open);
+    if (masterGain && audioContext) masterGain.gain.setTargetAtTime(open ? .06 : Number(volumeControl.value)/100,audioContext.currentTime,.05);
+  }
+  menuButton.addEventListener('click', () => setPause(true));
+  resumeButton.addEventListener('click', () => setPause(false));
+  restartButton.addEventListener('click', () => { setPause(false); resetRace(); });
+  titleButton.addEventListener('click', () => location.reload());
+  volumeControl.addEventListener('input', () => {
+    if (masterGain && audioContext) masterGain.gain.setTargetAtTime(state.paused ? .06 : Number(volumeControl.value)/100,audioContext.currentTime,.04);
   });
 
   function setDriverMood(mood, duration = 0) {
@@ -426,10 +527,16 @@
   const courseProgress = () => ((state.distance % 1800) + 1800) % 1800;
   function currentZone() {
     const p = courseProgress();
+    if (selectedCourse === 'utsunomiya') {
+      if (p >= 360 && p < 680) return 'LIGHTLINE CROSSING';
+      if (p >= 900 && p < 1290) return 'OYA STONE CAVE';
+      return 'UTSUNOMIYA NIGHT DRIVE';
+    }
     if (p >= 380 && p < 790) return 'MOMIJI BRIDGE';
     if (p >= 1020 && p < 1320) return 'SHINKANSEN CROSSING';
     return 'NASUSHIOBARA SUNSET';
   }
+  const onBridge = () => selectedCourse === 'nasu' && currentZone() === 'MOMIJI BRIDGE';
 
   function roadCurve(z) {
     const world = state.distance * 1.75;
@@ -441,19 +548,21 @@
     const p = 1 - Math.max(0, Math.min(150, z)) / 150;
     const bottom = h * 1.04;
     const y = horizon + Math.pow(p, 1.72) * (bottom - horizon);
-    const roadWidth = w * (.035 + Math.pow(p, 1.28) * (.62 + speedRatio() * .07));
+    const widthFactor = onBridge() ? .39 : .62;
+    const roadWidth = w * (.035 + Math.pow(p, 1.28) * (widthFactor + speedRatio() * .05));
     const center = w / 2 + roadCurve(z) * w * .22 * Math.pow(p, .45) - state.position * w * .22;
     return { p, y, roadWidth, x: center + roadWidth * side };
   }
 
   function drawSky() {
     const horizon = horizonY();
-    if (nasuBackground.complete && nasuBackground.naturalWidth) {
-      const scale = Math.max(w / nasuBackground.naturalWidth, (h * .72) / nasuBackground.naturalHeight);
-      const dw = nasuBackground.naturalWidth * scale;
-      const dh = nasuBackground.naturalHeight * scale;
+    const background = selectedCourse === 'utsunomiya' ? utsunomiyaBackground : nasuBackground;
+    if (background.complete && background.naturalWidth) {
+      const scale = Math.max(w / background.naturalWidth, (h * .72) / background.naturalHeight);
+      const dw = background.naturalWidth * scale;
+      const dh = background.naturalHeight * scale;
       const pan = Math.sin(state.distance * .002) * w * .035;
-      ctx.drawImage(nasuBackground, (w - dw) / 2 + pan, horizon - dh * .58, dw, dh);
+      ctx.drawImage(background, (w - dw) / 2 + pan, horizon - dh * .58, dw, dh);
     }
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
     sky.addColorStop(0, 'rgba(16,9,36,.44)');
@@ -500,7 +609,7 @@
     const bottom = h * 1.04;
     const slices = Math.max(84, Math.floor(h * .19));
     const camShift = state.position * w * .22;
-    const maxRoadWidth = .62 + speedRatio() * .07;
+    const maxRoadWidth = (onBridge() ? .39 : .62) + speedRatio() * .05;
 
     for (let i = 0; i < slices; i++) {
       const p = i / (slices - 1);
@@ -515,7 +624,7 @@
       const center2 = w / 2 + roadCurve(z2) * w * .22 * Math.pow(p2, .45) - camShift;
       const rumble = Math.floor((state.distance * 2.7 + z1) / 5) % 2 === 0;
 
-      ctx.fillStyle = rumble ? '#235739' : '#173d27';
+      ctx.fillStyle = onBridge() ? (rumble ? '#12091a' : '#09050e') : (currentZone() === 'OYA STONE CAVE' ? '#17141b' : (rumble ? '#235739' : '#173d27'));
       ctx.fillRect(0, y1, w, y2 - y1 + 1);
 
       ctx.fillStyle = rumble ? '#fff0d3' : '#ef3e26';
@@ -534,7 +643,7 @@
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = rumble ? '#2c2933' : '#3b3742';
+      ctx.fillStyle = onBridge() ? (rumble ? '#5a4433' : '#6f5138') : (rumble ? '#2c2933' : '#3b3742');
       ctx.beginPath();
       ctx.moveTo(center1 - roadW1, y1);
       ctx.lineTo(center1 + roadW1, y1);
@@ -615,27 +724,44 @@
 
   function trainPhase() { return (state.time * .00032) % 1; }
   function drawTrainCrossing() {
-    if (currentZone() !== 'SHINKANSEN CROSSING') return;
+    const shinkansen = currentZone() === 'SHINKANSEN CROSSING';
+    const lightline = currentZone() === 'LIGHTLINE CROSSING';
+    if (!shinkansen && !lightline) return;
     const progress = courseProgress();
-    const distanceTo = 1170 - progress;
+    const distanceTo = (shinkansen ? 1170 : 520) - progress;
     if (distanceTo < -35 || distanceTo > 150) return;
     const point = roadProjection(Math.max(2, distanceTo));
     const scale = .25 + point.p * 1.25;
     const phase = trainPhase();
-    const trainX = -w * .75 + phase * w * 2.5;
+    const trainX = -w * .75 + phase * w * (shinkansen ? 2.5 : 2.05);
     ctx.save();
     ctx.translate(0, point.y - 48 * scale);
     ctx.fillStyle = '#20212a';
     ctx.fillRect(0, 35 * scale, w, 5 * scale);
-    ctx.fillStyle = '#f3f2e9';
+    ctx.fillStyle = shinkansen ? '#f3f2e9' : '#ffd52a';
     ctx.beginPath();
-    ctx.moveTo(trainX, 0); ctx.lineTo(trainX + 430 * scale, 0); ctx.quadraticCurveTo(trainX + 500 * scale, 12 * scale, trainX + 525 * scale, 34 * scale); ctx.lineTo(trainX, 34 * scale); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#164982'; ctx.fillRect(trainX + 45 * scale, 18 * scale, 420 * scale, 7 * scale);
-    ctx.fillStyle = '#d7242e'; ctx.fillRect(trainX + 30 * scale, 27 * scale, 455 * scale, 3 * scale);
+    ctx.moveTo(trainX, 0); ctx.lineTo(trainX + (shinkansen?430:300) * scale, 0); ctx.quadraticCurveTo(trainX + (shinkansen?500:330) * scale, 12 * scale, trainX + (shinkansen?525:342) * scale, 34 * scale); ctx.lineTo(trainX, 34 * scale); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = shinkansen ? '#164982' : '#232b37'; ctx.fillRect(trainX + 35 * scale, 8 * scale, (shinkansen?430:270) * scale, 10 * scale);
+    ctx.fillStyle = shinkansen ? '#d7242e' : '#ece5c8'; ctx.fillRect(trainX + 25 * scale, 27 * scale, (shinkansen?455:295) * scale, 3 * scale);
     ctx.fillStyle = '#111a27';
-    for (let x = 70; x < 430; x += 35) ctx.fillRect(trainX + x * scale, 7 * scale, 22 * scale, 8 * scale);
+    for (let x = 55; x < (shinkansen?430:280); x += 35) ctx.fillRect(trainX + x * scale, 7 * scale, 22 * scale, 8 * scale);
     ctx.strokeStyle = '#fff225'; ctx.lineWidth = 4 * scale;
     [-1,1].forEach(side => { const px = point.x + side * point.roadWidth * 1.08; ctx.beginPath(); ctx.moveTo(px, 44 * scale); ctx.lineTo(px, -42 * scale); ctx.stroke(); });
+    ctx.restore();
+  }
+
+  function drawOyaCave() {
+    if (currentZone() !== 'OYA STONE CAVE') return;
+    const horizon = horizonY();
+    ctx.save();
+    ctx.fillStyle = 'rgba(5,5,10,.72)'; ctx.fillRect(0,0,w,horizon*.85);
+    ctx.fillStyle = '#27242d';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(w*.22,0); ctx.lineTo(w*.33,horizon*.62); ctx.lineTo(w*.25,h); ctx.lineTo(0,h); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(w,0); ctx.lineTo(w*.78,0); ctx.lineTo(w*.67,horizon*.62); ctx.lineTo(w*.75,h); ctx.lineTo(w,h); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#3e3943';
+    for(let i=0;i<8;i++){const x=i%2?w*(.75+(i%4)*.06):w*(.04+(i%4)*.06);const y=horizon*.3+(i%3)*h*.18;ctx.fillRect(x,y,w*.045,h*.09);}
+    ctx.fillStyle='#f2b23c';
+    [w*.31,w*.69].forEach(x=>{ctx.beginPath();ctx.arc(x,horizon*.72,6,0,Math.PI*2);ctx.fill();});
     ctx.restore();
   }
 
@@ -706,7 +832,7 @@
     [90, 196], [48, 184], [30, 150], [43, 119], [28, 84], [53, 35],
     [100, 20], [144, 43], [151, 82], [125, 108], [151, 139], [137, 181]
   ];
-  const lapLength = 2400;
+  const lapLength = 1800;
 
   function pointOnTrack(progress) {
     const lengths = [];
@@ -812,6 +938,7 @@
 
   function currentCarSprite() {
     if (selectedDriver === 'speedster') return speedCarSprite;
+    if (selectedDriver === 'dog') return dogCarSprite;
     if (state.spin > 0) {
       const progress = 1 - state.spin / state.spinDuration;
       return carSprites.spin[Math.floor(progress * carSprites.spin.length) % carSprites.spin.length];
@@ -831,13 +958,27 @@
     const size = Math.min(w * .42, h * .57, 340);
     const jumpProgress = state.jump > 0 ? 1 - state.jump / state.jumpDurationCurrent : 0;
     const jumpHeight = state.jump > 0 ? Math.sin(Math.PI * jumpProgress) * h * .16 : 0;
+    const rescueHeight = state.rescue > 0 ? h * (.18 + Math.sin((2.4-state.rescue)*4)*.025) : 0;
     const x = w / 2 - size / 2 + state.position * w * .052;
-    const y = h - size - Math.max(14, h * .015) + speedBounce - jumpHeight;
+    const y = h - size - Math.max(14, h * .015) + speedBounce - jumpHeight - rescueHeight;
     ctx.save();
     ctx.translate(x + size / 2, y + size / 2);
     if (state.spin > 0) ctx.rotate(Math.sin((1 - state.spin / state.spinDuration) * Math.PI * 2) * .08);
     if (sprite.complete && sprite.naturalWidth) ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     drawSponsorPlate(size);
+    ctx.restore();
+  }
+
+  function drawRescueRig() {
+    if (state.rescue <= 0) return;
+    const x = w/2 + state.position*w*.052;
+    const y = h*.28 + Math.sin(state.time*.01)*5;
+    ctx.save();
+    ctx.strokeStyle='#f8c52b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y+26);ctx.lineTo(x,h*.58);ctx.stroke();
+    ctx.fillStyle='#171019';ctx.strokeStyle='#fff0cc';ctx.lineWidth=3;ctx.fillRect(x-48,y-17,96,34);ctx.strokeRect(x-48,y-17,96,34);
+    ctx.fillStyle='#ff4b12';ctx.fillRect(x-35,y-8,70,16);
+    ctx.fillStyle='#f8c52b';ctx.font='900 13px Impact';ctx.textAlign='center';ctx.fillText('RIOT RESCUE',x,y+4);
+    ctx.fillStyle='#65e2dc';ctx.beginPath();ctx.arc(x-52,y,14,0,Math.PI*2);ctx.arc(x+52,y,14,0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
 
@@ -967,8 +1108,10 @@
 
   function update(dt) {
     if (!state.running) return;
+    if (state.paused) return;
     state.time += dt * 1000;
     if (!state.raceActive) {
+      startGirls.src = Math.floor(state.time/170)%2 ? './assets/ui/start-flag-women.png' : './assets/ui/start-flag-women-frame2.png';
       state.countdown -= dt;
       const mark = state.countdown > .58 ? Math.max(1, Math.floor(state.countdown)) : 0;
       if (mark !== state.countdownMark) {
@@ -985,8 +1128,16 @@
       }
       return;
     }
+    if (state.rescue > 0) {
+      state.rescue = Math.max(0,state.rescue-dt);
+      state.speed = 0;
+      state.position += (0-state.position)*Math.min(1,dt*2.2);
+      if (state.rescue === 0) { state.position=0; state.speed=55; setDriverMood('neutral'); showReaction('SAFE!'); }
+      return;
+    }
     state.previousDistance = state.distance;
-    const onRoad = Math.abs(state.position) < 1.04;
+    const roadLimit = onBridge() ? .68 : 1.04;
+    const onRoad = Math.abs(state.position) < roadLimit;
     const steeringTarget = input.left ? -2 : input.right ? 2 : 0;
     state.steerVisual += (steeringTarget - state.steerVisual) * Math.min(1, dt * 9);
 
@@ -1008,6 +1159,13 @@
     state.distance += state.speed * dt / 5.2;
     updateRival(dt);
 
+    if (onBridge() && Math.abs(state.position) > .79 && state.jump === 0) {
+      state.rescue = 2.4; state.speed = 0; state.shake = 18;
+      setDriverMood('angry',2.4); showReaction('HELP!!'); showToast('RIOT RESCUE INBOUND!',1.5);
+      if(navigator.vibrate) navigator.vibrate([80,40,80]);
+      return;
+    }
+
     if (state.previousDistance < state.nextItem && state.distance >= state.nextItem) {
       if (Math.abs(state.position - state.itemLane) < .55) {
         state.roulette = 1.05; state.heldItem = ''; showReaction('ITEM!');
@@ -1028,7 +1186,9 @@
     state.trainHitCooldown = Math.max(0,state.trainHitCooldown-dt);
 
     const zoneProgress = courseProgress();
-    const trainDanger = currentZone() === 'SHINKANSEN CROSSING' && Math.abs(zoneProgress - 1170) < 9 && trainPhase() > .18 && trainPhase() < .8;
+    const hazardCenter = currentZone() === 'SHINKANSEN CROSSING' ? 1170 : 520;
+    const railZone = currentZone() === 'SHINKANSEN CROSSING' || currentZone() === 'LIGHTLINE CROSSING';
+    const trainDanger = railZone && Math.abs(zoneProgress - hazardCenter) < 9 && trainPhase() > .18 && trainPhase() < .8;
     if (trainDanger && state.jump === 0 && state.trainHitCooldown === 0) {
       state.trainHitCooldown = 3; state.speed *= .18; triggerSpin(); playCrashSound(); showReaction('WHAAAM!!');
     }
@@ -1049,7 +1209,7 @@
     state.spinCooldown = Math.max(0, state.spinCooldown - dt);
     state.jumpCooldown = Math.max(0, state.jumpCooldown - dt);
     jumpButton.classList.toggle('ready', state.jumpCooldown === 0 && state.jump === 0 && state.spin === 0 && state.speed >= 25);
-    if (Math.abs(state.position) > 1.42 && state.speed > 145 && state.spinCooldown === 0 && state.jump === 0) triggerSpin();
+    if (!onBridge() && Math.abs(state.position) > 1.42 && state.speed > 145 && state.spinCooldown === 0 && state.jump === 0) triggerSpin();
 
     const baseShake = state.speed > 220 ? (state.speed - 220) / 110 * 2.4 : 0;
     const offRoadShake = !onRoad && state.speed > 50 ? 8 : 0;
@@ -1097,6 +1257,7 @@
     if (state.shake > 0) ctx.translate((Math.random() - .5) * state.shake, (Math.random() - .5) * state.shake);
     drawSky();
     drawRoad();
+    drawOyaCave();
     drawBridgeRails();
     drawRamp();
     drawRoadside();
@@ -1105,6 +1266,7 @@
     drawRival();
     drawSpeedLines();
     drawCar();
+    drawRescueRig();
     ctx.restore();
   }
 

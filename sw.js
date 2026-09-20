@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nasu-riot-racing-v9';
+const CACHE_NAME = 'nasu-riot-racing-v10';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -19,7 +19,14 @@ const CORE_ASSETS = [
   './assets/select/hotrod-three-quarter.png',
   './assets/select/speed-coupe-three-quarter.png',
   './assets/ui/start-flag-women.png',
+  './assets/ui/start-flag-women-frame2.png',
   './assets/course/nasushiobara-sunset.jpg',
+  './assets/course/utsunomiya-sunset.jpg',
+  './assets/driver/dog/dog-neutral.png',
+  './assets/driver/dog/dog-happy.png',
+  './assets/driver/dog/dog-hit.png',
+  './assets/select/dog-offroad-three-quarter.png',
+  './assets/car-dog/rear.png',
   './assets/car-v2/steer-hard-left.png',
   './assets/car-v2/steer-left.png',
   './assets/car-v2/steer-center.png',

@@ -1,7 +1,7 @@
 {
-  "name": "NASU RIOT RACING",
-  "short_name": "NASU RIOT",
-  "description": "栃木県北をホットロッドで爆走するアーケードレース",
+  "name": "TOCHIGI RIOT RACING",
+  "short_name": "TOCHIGI RIOT",
+  "description": "栃木県をホットロッドで爆走するアーケードレース",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
