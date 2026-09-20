@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nasu-riot-racing-v7';
+const CACHE_NAME = 'nasu-riot-racing-v8';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,10 @@ const CORE_ASSETS = [
   './assets/driver/president-happy-v4.png',
   './assets/driver/president-angry-v4.png',
   './assets/sponsor/reverth-plate-pixel.png',
+  './assets/rival/speed-rival-neutral.png',
+  './assets/rival/speed-rival-happy.png',
+  './assets/rival/speed-rival-hit.png',
+  './assets/rival/speed-coupe.png',
   './assets/car-v2/steer-hard-left.png',
   './assets/car-v2/steer-left.png',
   './assets/car-v2/steer-center.png',
@@ -36,10 +40,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+    fetch(event.request).then(response => {
       const copy = response.clone();
       caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
       return response;
-    }))
+    }).catch(() => caches.match(event.request).then(cached => cached || (event.request.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
 });

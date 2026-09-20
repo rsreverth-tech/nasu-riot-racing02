@@ -50,6 +50,19 @@ button { font: inherit; }
 @keyframes portrait-hit { 0%,100% { transform: translate(0,0) skew(-2deg) scale(1.06); } 35% { transform: translate(-8px,3px) skew(-5deg) scale(1.09); } 70% { transform: translate(7px,-2px) skew(2deg) scale(1.09); } }
 @keyframes portrait-flash { 0% { opacity: .65; } 100% { opacity: 0; } }
 
+.rival-card {
+  right: calc(max(14px, env(safe-area-inset-right)) + clamp(102px, 15vw, 160px));
+  width: clamp(78px, 11vw, 116px); border-color: #ff3ec8;
+  background: linear-gradient(145deg, rgba(21,6,34,.96), rgba(88,8,74,.9));
+}
+.rival-card .rival-frame { background: #6a087e; border-color: #ff9de7; }
+.rival-card p { color: #ff6ed9; }
+.rival-card small { color: #73f4ff; }
+.rival-card.mood-neutral { transform: skew(2deg); }
+.rival-card.mood-happy { border-color: #73f4ff; }
+.rival-card.mood-angry { border-color: #fff225; }
+#game-shell:not(.running) .rival-card { opacity: 0; visibility: hidden; }
+
 .course-map {
   position: absolute; z-index: 3; left: max(14px, env(safe-area-inset-left)); top: 22%;
   width: clamp(96px, 13vw, 138px); padding: 7px 7px 6px; pointer-events: none;
@@ -143,11 +156,13 @@ h1 em { color: #ff4b12; font-style: inherit; }
   .setup-group button { padding: 4px 3px; }
   .garage-actions .menu-main-button { min-width: 180px; padding: 9px 20px; }
   .driver-card { top: 21%; width: 86px; padding: 5px; }
+  .rival-card { right: 108px; top: 21%; width: 72px; }
   .course-map { top: 18%; width: 82px; padding: 4px; }
 }
 
 @media (orientation: portrait) {
   .driver-card { top: 18%; width: 92px; }
+  .rival-card { right: 116px; top: 18%; width: 76px; }
   .course-map { top: 18%; width: 88px; }
   .start-panel { justify-content: flex-start; overflow-y: auto; }
   .intro-view { min-height: 100%; }

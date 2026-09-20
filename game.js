@@ -14,6 +14,9 @@
   const driverCard = document.querySelector('#driver-card');
   const driverFace = document.querySelector('#driver-face');
   const driverMood = document.querySelector('#driver-mood');
+  const rivalCard = document.querySelector('#rival-card');
+  const rivalFace = document.querySelector('#rival-face');
+  const rivalMood = document.querySelector('#rival-mood');
   const mapCanvas = document.querySelector('#map-canvas');
   const mapCtx = mapCanvas.getContext('2d');
   const lapCount = document.querySelector('#lap-count');
@@ -34,11 +37,17 @@
     jump: ['jump-up.png', 'jump-level.png', 'jump-down.png'].map(name => loadImage(`./assets/car-v2/${name}`))
   };
   const sponsorPlate = loadImage('./assets/sponsor/reverth-plate-pixel.png');
+  const rivalCarSprite = loadImage('./assets/rival/speed-coupe.png');
 
   const moods = {
     neutral: { src: './assets/driver/president-neutral-v3.png', label: 'LOCKED IN' },
     happy: { src: './assets/driver/president-happy-v4.png', label: 'HAHA! EAT DUST!' },
     angry: { src: './assets/driver/president-angry-v4.png', label: 'WHAAAT?!' }
+  };
+  const rivalMoods = {
+    neutral: { src: './assets/rival/speed-rival-neutral.png', label: 'ICE COLD' },
+    happy: { src: './assets/rival/speed-rival-happy.png', label: 'TOO SLOW!' },
+    angry: { src: './assets/rival/speed-rival-hit.png', label: 'MY GLASSES!' }
   };
 
   const partEffects = {
@@ -77,6 +86,10 @@
     time: 0, shake: 0, steerVisual: 0, jump: 0, jumpDuration: 1.08, jumpDurationCurrent: 1.08,
     spin: 0, spinDuration: .78, spinCooldown: 0, jumpCooldown: 0, nextRamp: 420,
     speedCelebrated: false, toastTimer: 0
+  };
+  const rival = {
+    distance: 72, previousRelative: 72, speed: 190, lane: -.38, targetLane: .42,
+    laneTimer: 1.7, hit: 0, collisionCooldown: 0, mood: 'neutral', moodTimer: 0
   };
 
   let currentMood = 'neutral';
@@ -229,6 +242,40 @@
     enginePulse.start();
   }
 
+  function playCrashSound() {
+    if (!audioContext) return;
+    const now = audioContext.currentTime;
+    const length = Math.floor(audioContext.sampleRate * .24);
+    const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+    const noise = audioContext.createBufferSource();
+    const filter = audioContext.createBiquadFilter();
+    const crashGain = audioContext.createGain();
+    noise.buffer = buffer;
+    filter.type = 'bandpass';
+    filter.frequency.value = 720;
+    filter.Q.value = .8;
+    crashGain.gain.setValueAtTime(.22, now);
+    crashGain.gain.exponentialRampToValueAtTime(.001, now + .24);
+    noise.connect(filter);
+    filter.connect(crashGain);
+    crashGain.connect(audioContext.destination);
+    noise.start(now);
+
+    const thud = audioContext.createOscillator();
+    const thudGain = audioContext.createGain();
+    thud.type = 'square';
+    thud.frequency.setValueAtTime(105, now);
+    thud.frequency.exponentialRampToValueAtTime(38, now + .18);
+    thudGain.gain.setValueAtTime(.16, now);
+    thudGain.gain.exponentialRampToValueAtTime(.001, now + .2);
+    thud.connect(thudGain);
+    thudGain.connect(audioContext.destination);
+    thud.start(now);
+    thud.stop(now + .21);
+  }
+
   garageButton.addEventListener('click', () => startPanel.classList.add('garage-open'));
   garageBack.addEventListener('click', () => startPanel.classList.remove('garage-open'));
 
@@ -236,6 +283,9 @@
     updateSetup();
     state.running = true;
     state.speed = 55;
+    rival.distance = 72;
+    rival.previousRelative = 72;
+    rival.speed = 190;
     document.querySelector('#game-shell').classList.add('running');
     startPanel.classList.add('hidden');
     startEngineAudio();
@@ -254,6 +304,15 @@
     driverFace.src = moods[mood].src;
     driverMood.textContent = moods[mood].label;
     driverCard.className = `driver-card mood-${mood}`;
+  }
+
+  function setRivalMood(mood, duration = 0) {
+    if (!rivalMoods[mood]) return;
+    rival.mood = mood;
+    rival.moodTimer = duration;
+    rivalFace.src = rivalMoods[mood].src;
+    rivalMood.textContent = rivalMoods[mood].label;
+    rivalCard.className = `driver-card rival-card mood-${mood}`;
   }
 
   driverCard.addEventListener('click', () => {
@@ -496,6 +555,7 @@
   function drawCourseMap() {
     const progress = (state.distance % lapLength) / lapLength;
     const player = pointOnTrack(progress);
+    const rivalPoint = pointOnTrack((rival.distance % lapLength) / lapLength);
     mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
     mapCtx.lineJoin = 'round';
     mapCtx.lineCap = 'round';
@@ -529,7 +589,45 @@
     mapCtx.lineTo(player[0] - 5, player[1] + 4);
     mapCtx.closePath();
     mapCtx.fill();
+    mapCtx.save();
+    mapCtx.translate(rivalPoint[0], rivalPoint[1]);
+    mapCtx.rotate(Math.PI / 4);
+    mapCtx.fillStyle = '#ff3ec8';
+    mapCtx.strokeStyle = '#fff';
+    mapCtx.lineWidth = 2;
+    mapCtx.fillRect(-5, -5, 10, 10);
+    mapCtx.strokeRect(-5, -5, 10, 10);
+    mapCtx.restore();
     lapCount.textContent = `LAP ${Math.floor(state.distance / lapLength) + 1}`;
+  }
+
+  function drawRival() {
+    const relative = rival.distance - state.distance;
+    if (relative <= 1 || relative > 150 || !rivalCarSprite.complete || !rivalCarSprite.naturalWidth) return;
+    const point = roadProjection(relative, rival.lane * .58);
+    const size = 18 + point.p * Math.min(210, h * .48);
+    const hitProgress = rival.hit > 0 ? 1 - rival.hit : 0;
+    ctx.save();
+    ctx.translate(point.x, point.y - size * .56);
+    if (rival.hit > 0) {
+      ctx.translate(Math.sin(hitProgress * 34) * size * .08, 0);
+      ctx.rotate(Math.sin(hitProgress * 24) * .24);
+    }
+    ctx.drawImage(rivalCarSprite, -size / 2, -size / 2, size, size);
+    if (rival.hit > 0) {
+      ctx.strokeStyle = '#fff229';
+      ctx.lineWidth = Math.max(2, size * .025);
+      for (let i = 0; i < 7; i++) {
+        const angle = i / 7 * Math.PI * 2 + hitProgress * 5;
+        const inner = size * .34;
+        const outer = size * (.45 + (i % 3) * .07);
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+        ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function currentCarSprite() {
@@ -614,6 +712,70 @@
     if (navigator.vibrate) navigator.vibrate([45, 35, 65]);
   }
 
+  function triggerRivalCollision() {
+    rival.hit = 1;
+    rival.collisionCooldown = 1.25;
+    rival.speed *= .68;
+    state.speed *= .7;
+    state.shake = 22;
+    state.position += state.position < rival.lane ? -.2 : .2;
+    setDriverMood('angry', 1.25);
+    setRivalMood('angry', 1.35);
+    showToast('KRAAASH!!', 1.05);
+    playCrashSound();
+    if (navigator.vibrate) navigator.vibrate([70, 30, 100]);
+  }
+
+  function updateRival(dt) {
+    const relativeBefore = rival.distance - state.distance;
+    rival.laneTimer -= dt;
+    if (rival.laneTimer <= 0) {
+      rival.targetLane = -.72 + Math.random() * 1.44;
+      rival.laneTimer = 1.7 + Math.random() * 2.4;
+    }
+    rival.lane += (rival.targetLane - rival.lane) * Math.min(1, dt * 1.25);
+
+    const speedBuild = Math.min(100, state.distance * .18);
+    let targetSpeed = 190 + speedBuild + Math.sin(state.time * .00062) * 30;
+    if (relativeBefore < -24) targetSpeed += 45;
+    if (relativeBefore > 145) targetSpeed -= 45;
+    if (rival.hit > 0) targetSpeed *= .68;
+    targetSpeed = Math.max(145, Math.min(355, targetSpeed));
+    rival.speed += (targetSpeed - rival.speed) * Math.min(1, dt * .9);
+    rival.distance += rival.speed * dt / 5.2;
+
+    rival.hit = Math.max(0, rival.hit - dt * 1.25);
+    rival.collisionCooldown = Math.max(0, rival.collisionCooldown - dt);
+    if (rival.moodTimer > 0) {
+      rival.moodTimer -= dt;
+      if (rival.moodTimer <= 0) setRivalMood('neutral');
+    }
+
+    let relative = rival.distance - state.distance;
+    const lateralGap = Math.abs(state.position - rival.lane);
+    const collided = Math.abs(relative) < 11 && lateralGap < .42 && state.jump === 0 && rival.collisionCooldown === 0;
+    if (collided) {
+      triggerRivalCollision();
+    } else if (rival.previousRelative > 3 && relative <= -3) {
+      setDriverMood('happy', 1.3);
+      setRivalMood('angry', 1.3);
+      showToast('OVERTAKE!', .95);
+    } else if (rival.previousRelative < -3 && relative >= 3) {
+      setDriverMood('angry', 1.2);
+      setRivalMood('happy', 1.35);
+      showToast('HE BLEW PAST!', .95);
+    }
+
+    if (relative < -135) {
+      rival.distance = state.distance + 155;
+      relative = 155;
+    } else if (relative > 245) {
+      rival.distance = state.distance + 115;
+      relative = 115;
+    }
+    rival.previousRelative = relative;
+  }
+
   function update(dt) {
     if (!state.running) return;
     state.previousDistance = state.distance;
@@ -637,6 +799,7 @@
     state.position = Math.max(-1.62, Math.min(1.62, state.position));
     state.distance += state.speed * dt / 5.2;
     state.time += dt * 1000;
+    updateRival(dt);
 
     if (state.previousDistance < state.nextRamp && state.distance >= state.nextRamp) {
       if (onRoad && state.speed > 85 && state.jump === 0) triggerJump(true);
@@ -702,6 +865,7 @@
     drawRoad();
     drawRamp();
     drawRoadside();
+    drawRival();
     drawSpeedLines();
     drawCar();
     ctx.restore();
