@@ -6,19 +6,19 @@
   <meta name="theme-color" content="#110816" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="TOCHIGI RIOT" />
+  <meta name="apple-mobile-web-app-title" content="HOT ROD TOCHIGI" />
   <meta name="description" content="栃木県をホットロッドで爆走するスマホ向け疑似3Dレース試作" />
-  <title>TOCHIGI RIOT RACING — Prototype</title>
+  <title>HOT ROD TOCHIGI — Prototype</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <main id="game-shell">
-    <canvas id="game" aria-label="NASU RIOT RACING ゲーム画面"></canvas>
+    <canvas id="game" aria-label="HOT ROD TOCHIGI ゲーム画面"></canvas>
 
     <header class="hud" aria-live="polite">
-      <div class="brand"><span>TOCHIGI</span> RIOT RACING <small>PROTO 10 · TWO COURSE TOUR</small></div>
+      <div class="brand"><span>HOT ROD</span> TOCHIGI <small>PROTO 12 · PINK GRIP</small></div>
       <div class="meters">
         <div class="speedometer" aria-label="スピードメーター">
           <span class="speedometer-ticks"></span><i id="speed-needle"></i><b></b>
@@ -32,12 +32,9 @@
 
     <aside id="driver-card" class="driver-card mood-neutral" aria-live="polite">
       <div class="portrait-frame">
-        <img id="driver-face" src="./assets/driver/president-neutral-v3.png" alt="ドライバーの表情" />
+        <img id="driver-face" src="./assets/driver/woman/woman-neutral-v2.png" alt="ドライバーの表情" />
         <span class="portrait-flash" aria-hidden="true"></span>
       </div>
-      <p id="driver-mood">FOCUSED</p>
-      <strong id="driver-name">THE PRESIDENT</strong>
-      <small id="driver-type">PLAYER 01 · BALANCE</small>
     </aside>
 
     <aside id="course-map" class="course-map" aria-label="コースマップと現在位置">
@@ -49,6 +46,7 @@
     <button id="item-slot" class="item-slot empty" type="button" aria-label="入手したアイテムを使う"><small>ITEM</small><strong>?</strong><span>EMPTY</span></button>
     <div id="reaction-pop" class="reaction-pop" aria-live="assertive"><span>WOW!</span></div>
     <div id="countdown" class="countdown" aria-live="assertive"></div>
+    <div id="lap-banner" class="lap-banner" aria-live="assertive"></div>
     <img id="start-girls" class="start-girls" src="./assets/ui/start-flag-women.png" alt="チェッカーフラッグを振る二人のレーススターター" />
 
     <section id="pause-menu" class="pause-menu" aria-label="ゲームメニュー">
@@ -63,9 +61,9 @@
 
     <section id="start" class="start-panel">
       <div id="intro-view" class="intro-view">
-        <p class="eyebrow">NORTH TOCHIGI ILLEGAL GRAND PRIX</p>
-        <h1>県北を、<br><em>ブッ飛ばせ。</em></h1>
-        <p class="brief">ガレージでホットロッドを仕上げろ。選んだパーツで加速・最高速・グリップが変化します。</p>
+        <p class="eyebrow">TOCHIGI THREE LAP GRAND PRIX</p>
+        <h1>HOT ROD<br><em>TOCHIGI</em></h1>
+        <p class="brief">栃木を3周ブッ飛ばせ。ガレージで仕上げたマシンで、街と山の危険ゾーンを駆け抜けろ。</p>
         <button id="garage-button" class="menu-main-button" type="button">COURSE SELECT</button>
         <p class="rotate-note">横向きにすると走りやすくなります</p>
       </div>
@@ -91,11 +89,11 @@
           <img src="./assets/sponsor/reverth-logo.png" alt="Reverth Creative" />
         </div>
         <div class="driver-grid">
-          <button class="driver-choice selected" data-driver="president" type="button">
+          <button class="driver-choice selected" data-driver="woman" type="button">
             <span class="choice-number">01</span>
-            <img class="choice-car" src="./assets/select/hotrod-three-quarter.png" alt="黒とオレンジのホットロッド 前方斜め" />
-            <img class="choice-face" src="./assets/driver/president-neutral-v3.png" alt="プレジデント" />
-            <span class="choice-copy"><strong>THE PRESIDENT</strong><small>BALANCE · BLACK FLAME V8</small></span>
+            <img class="choice-car" src="./assets/select/woman-sedan-three-quarter.png" alt="パールクリームとピンクのセダン 前方斜め" />
+            <img class="choice-face" src="./assets/driver/woman/woman-neutral-v2.png" alt="女性セダンドライバー" />
+            <span class="choice-copy"><strong>THE CLOSER</strong><small>SEDAN · PINK SCALLOP</small></span>
           </button>
           <button class="driver-choice" data-driver="speedster" type="button">
             <span class="choice-number">02</span>

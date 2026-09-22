@@ -13,9 +13,6 @@
   const toast = document.querySelector('#toast');
   const driverCard = document.querySelector('#driver-card');
   const driverFace = document.querySelector('#driver-face');
-  const driverMood = document.querySelector('#driver-mood');
-  const driverName = document.querySelector('#driver-name');
-  const driverType = document.querySelector('#driver-type');
   const mapCanvas = document.querySelector('#map-canvas');
   const mapCtx = mapCanvas.getContext('2d');
   const lapCount = document.querySelector('#lap-count');
@@ -24,6 +21,7 @@
   const zoneName = document.querySelector('#zone-name');
   const reactionPop = document.querySelector('#reaction-pop');
   const countdownEl = document.querySelector('#countdown');
+  const lapBanner = document.querySelector('#lap-banner');
   const itemSlot = document.querySelector('#item-slot');
   const garagePreview = document.querySelector('#garage-car-preview');
   const selectBack = document.querySelector('#select-back');
@@ -57,14 +55,30 @@
   const nasuBackground = loadImage('./assets/course/nasushiobara-sunset.jpg');
   const utsunomiyaBackground = loadImage('./assets/course/utsunomiya-sunset.jpg');
   const dogCarSprite = loadImage('./assets/car-dog/rear.png');
+  const dogCarAngles = {
+    rear: dogCarSprite,
+    rearRight: loadImage('./assets/car-dog/rear-right.png'),
+    front: loadImage('./assets/car-dog/front.png'),
+    sideLeft: loadImage('./assets/car-dog/side-left.png'),
+    sideRight: loadImage('./assets/car-dog/side-right.png'),
+    underside: loadImage('./assets/car-dog/jump-underside.png')
+  };
+  const womanCarAngles = {
+    rearLeft: loadImage('./assets/car-woman/rear-left.png'),
+    rearRight: loadImage('./assets/car-woman/rear-right.png'),
+    front: loadImage('./assets/car-woman/front.png'),
+    sideLeft: loadImage('./assets/car-woman/side-left.png'),
+    sideRight: loadImage('./assets/car-woman/side-right.png'),
+    underside: loadImage('./assets/car-woman/jump-underside.png')
+  };
 
   const drivers = {
-    president: {
-      name: 'THE PRESIDENT', type: 'PLAYER 01 · BALANCE', preview: './assets/select/hotrod-three-quarter.png',
+    woman: {
+      name: 'THE CLOSER', type: 'PLAYER 01 · SEDAN', preview: './assets/select/woman-sedan-three-quarter.png',
       moods: {
-        neutral: { src: './assets/driver/president-neutral-v3.png', label: 'LOCKED IN' },
-        happy: { src: './assets/driver/president-happy-v4.png', label: 'HAHA! EAT DUST!' },
-        angry: { src: './assets/driver/president-angry-v4.png', label: 'WHAAAT?!' }
+        neutral: { src: './assets/driver/woman/woman-neutral-v2.png', label: 'LOCKED IN!' },
+        happy: { src: './assets/driver/woman/woman-happy-v2.png', label: 'SEE YA!!' },
+        angry: { src: './assets/driver/woman/woman-hit-v2.png', label: 'HEY!!' }
       }
     },
     speedster: {
@@ -84,7 +98,7 @@
       }
     }
   };
-  let selectedDriver = 'president';
+  let selectedDriver = 'woman';
   let selectedCourse = 'nasu';
 
   const partEffects = {
@@ -124,7 +138,7 @@
     spin: 0, spinDuration: .78, spinCooldown: 0, jumpCooldown: 0, nextRamp: 420,
     speedCelebrated: false, toastTimer: 0, countdown: 0, countdownMark: 0, raceActive: false,
     nextItem: 260, itemLane: .35, roulette: 0, heldItem: '', turbo: 0, shield: 0,
-    trainHitCooldown: 0, rescue: 0, paused: false
+    trainHitCooldown: 0, rescue: 0, paused: false, currentLap: 1, finished: false
   };
   const rival = {
     distance: 72, previousRelative: 72, speed: 190, lane: -.38, targetLane: .42,
@@ -371,8 +385,6 @@
 
   function applyDriverSelection() {
     const driver = drivers[selectedDriver];
-    driverName.textContent = driver.name;
-    driverType.textContent = driver.type;
     garagePreview.src = driver.preview;
     currentMood = '';
     setDriverMood('neutral');
@@ -435,6 +447,7 @@
     state.position = 0; state.distance = 0; state.previousDistance = 0; state.nextRamp = 420;
     state.nextItem = 260; state.itemLane = .35; state.heldItem = ''; state.roulette = 0;
     state.spin = 0; state.jump = 0; state.rescue = 0; state.paused = false;
+    state.currentLap = 1; state.finished = false;
     rival.distance = 72;
     rival.previousRelative = 72;
     rival.speed = 190;
@@ -474,7 +487,6 @@
     currentMood = mood;
     moodTimer = duration;
     driverFace.src = moods[mood].src;
-    driverMood.textContent = moods[mood].label;
     driverCard.className = `driver-card mood-${mood}`;
   }
 
@@ -485,7 +497,9 @@
 
   driverCard.addEventListener('click', () => {
     const order = ['neutral', 'happy', 'angry'];
-    setDriverMood(order[(order.indexOf(currentMood) + 1) % order.length], 1.4);
+    const nextMood = order[(order.indexOf(currentMood) + 1) % order.length];
+    setDriverMood(nextMood, 1.4);
+    showReaction(drivers[selectedDriver].moods[nextMood].label);
   });
 
   function showToast(message, duration = .8) {
@@ -501,6 +515,14 @@
     reactionPop.classList.add('show');
     clearTimeout(reactionTimer);
     reactionTimer = setTimeout(() => reactionPop.classList.remove('show'), 760);
+  }
+
+  function showLapBanner(message) {
+    lapBanner.textContent = message;
+    lapBanner.classList.remove('show');
+    void lapBanner.offsetWidth;
+    lapBanner.classList.add('show');
+    setTimeout(() => lapBanner.classList.remove('show'),1750);
   }
 
   function updateItemSlot() {
@@ -903,12 +925,12 @@
     mapCtx.fillRect(-5, -5, 10, 10);
     mapCtx.strokeRect(-5, -5, 10, 10);
     mapCtx.restore();
-    lapCount.textContent = `LAP ${Math.floor(state.distance / lapLength) + 1}`;
+    lapCount.textContent = state.currentLap === 3 ? 'FINAL LAP' : `LAP ${state.currentLap}/3`;
   }
 
   function drawRival() {
     const relative = rival.distance - state.distance;
-    const rivalSprite = selectedDriver === 'president' ? speedCarSprite : carSprites.steering[2];
+    const rivalSprite = selectedDriver === 'woman' ? speedCarSprite : carSprites.steering[2];
     if (relative <= 1 || relative > 150 || !rivalSprite.complete || !rivalSprite.naturalWidth) return;
     const point = roadProjection(relative, rival.lane * .58);
     const size = 18 + point.p * Math.min(210, h * .48);
@@ -938,7 +960,31 @@
 
   function currentCarSprite() {
     if (selectedDriver === 'speedster') return speedCarSprite;
-    if (selectedDriver === 'dog') return dogCarSprite;
+    if (selectedDriver === 'woman') {
+      if (state.spin > 0) {
+        const frames=[womanCarAngles.rearLeft,womanCarAngles.sideLeft,womanCarAngles.front,womanCarAngles.sideRight,womanCarAngles.rearRight,womanCarAngles.sideRight,womanCarAngles.front,womanCarAngles.sideLeft];
+        const progress=1-state.spin/state.spinDuration;
+        return frames[Math.floor(progress*frames.length)%frames.length];
+      }
+      if (state.jump > 0) {
+        const progress=1-state.jump/state.jumpDurationCurrent;
+        return progress>.28&&progress<.78?womanCarAngles.underside:womanCarAngles.rearLeft;
+      }
+      return state.steerVisual<-.35?womanCarAngles.rearRight:womanCarAngles.rearLeft;
+    }
+    if (selectedDriver === 'dog') {
+      if (state.spin > 0) {
+        const frames = [dogCarAngles.rear,dogCarAngles.sideLeft,dogCarAngles.front,dogCarAngles.sideRight,dogCarAngles.rearRight,dogCarAngles.sideRight,dogCarAngles.front,dogCarAngles.sideLeft];
+        const progress = 1-state.spin/state.spinDuration;
+        return frames[Math.floor(progress*frames.length)%frames.length];
+      }
+      if (state.jump > 0) {
+        const progress = 1-state.jump/state.jumpDurationCurrent;
+        return progress>.28 && progress<.78 ? dogCarAngles.underside : dogCarAngles.rear;
+      }
+      if (state.steerVisual < -.55) return dogCarAngles.rearRight;
+      return dogCarAngles.rear;
+    }
     if (state.spin > 0) {
       const progress = 1 - state.spin / state.spinDuration;
       return carSprites.spin[Math.floor(progress * carSprites.spin.length) % carSprites.spin.length];
@@ -1110,6 +1156,12 @@
     if (!state.running) return;
     if (state.paused) return;
     state.time += dt * 1000;
+    if (state.finished) {
+      state.speed = Math.max(0,state.speed-180*dt);
+      speedEl.textContent = Math.round(state.speed);
+      speedNeedle.style.transform = `rotate(${-125 + speedRatio()*250}deg)`;
+      return;
+    }
     if (!state.raceActive) {
       startGirls.src = Math.floor(state.time/170)%2 ? './assets/ui/start-flag-women.png' : './assets/ui/start-flag-women-frame2.png';
       state.countdown -= dt;
@@ -1157,6 +1209,17 @@
     state.position += roadCurve(0) * speedRatio() * .25 * dt;
     state.position = Math.max(-1.62, Math.min(1.62, state.position));
     state.distance += state.speed * dt / 5.2;
+    const newLap = Math.min(3,Math.floor(state.distance/lapLength)+1);
+    if (newLap !== state.currentLap) {
+      state.currentLap = newLap;
+      if (newLap === 3) { showLapBanner('FINAL LAP!'); showReaction('LET\'S FINISH!!'); playCountTone(760,.32); }
+      else { showLapBanner(`LAP ${newLap}`); playCountTone(540,.2); }
+    }
+    if (state.distance >= lapLength*3) {
+      state.distance = lapLength*3; state.finished = true;
+      setDriverMood('happy',5); showLapBanner('FINISH!!'); showReaction('WE DID IT!!'); playCountTone(880,.5);
+      return;
+    }
     updateRival(dt);
 
     if (onBridge() && Math.abs(state.position) > .79 && state.jump === 0) {
