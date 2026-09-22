@@ -35,6 +35,14 @@
   const titleButton = document.querySelector('#title-button');
   const volumeControl = document.querySelector('#volume-control');
   const startGirls = document.querySelector('#start-girls');
+  const profileRole = document.querySelector('#profile-role');
+  const profileCopy = document.querySelector('#profile-copy');
+  const profileType = document.querySelector('#profile-type');
+  const profileMove = document.querySelector('#profile-move');
+  const profileEffect = document.querySelector('#profile-effect');
+  const signatureButton = document.querySelector('#signature-button');
+  const signatureName = document.querySelector('#signature-name');
+  const signatureState = document.querySelector('#signature-state');
 
   const loadImage = src => {
     const image = new Image();
@@ -75,6 +83,9 @@
   const drivers = {
     woman: {
       name: 'THE CLOSER', type: 'PLAYER 01 · SEDAN', preview: './assets/select/woman-sedan-three-quarter.png',
+      role: '営業・顧客サポート',
+      profile: '相談を整理し、仲間を巻き込みながら最後までやり切るチームの推進役。',
+      ability: { type: 'power', typeLabel: 'POWER TYPE', name: 'RAM JAM', effect: '一定時間、接触した相手をひるませる', duration: 5.5, reaction: 'MAKE WAY!!', mood: 'angry' },
       moods: {
         neutral: { src: './assets/driver/woman/woman-neutral-v2.png', label: 'LOCKED IN!' },
         happy: { src: './assets/driver/woman/woman-happy-v2.png', label: 'SEE YA!!' },
@@ -83,6 +94,9 @@
     },
     speedster: {
       name: 'THE SPEEDSTER', type: 'PLAYER 02 · SPEED', preview: './assets/select/speed-coupe-three-quarter.png',
+      role: '代表・プロジェクト推進',
+      profile: '判断したらすぐ動く。現場の先頭に立ち、仕事を最短距離で前へ進める。',
+      ability: { type: 'speed', typeLabel: 'SPEED TYPE', name: 'REDLINE RUSH', effect: '一定時間、最高速と加速力が大幅アップ', duration: 4.8, reaction: 'FULL SEND!!', mood: 'happy' },
       moods: {
         neutral: { src: './assets/rival/speed-rival-neutral-v2.png', label: 'ICE COLD' },
         happy: { src: './assets/rival/speed-rival-happy-v2.png', label: 'TOO SLOW!' },
@@ -91,6 +105,9 @@
     },
     dog: {
       name: 'GOLDEN ACE', type: 'PLAYER 03 · OFF ROAD', preview: './assets/select/dog-offroad-three-quarter.png',
+      role: '公式看板犬・広報',
+      profile: '誰とでも一瞬で距離を縮め、会社の空気を明るくする愛されトレードマーク。',
+      ability: { type: 'charisma', typeLabel: 'CHARISMA TYPE', name: 'LUCKY JACK', effect: '相手が持つ、または次に取るアイテムを1回奪う', duration: 0, reaction: 'GIMME THAT!!', mood: 'happy' },
       moods: {
         neutral: { src: './assets/driver/dog/dog-neutral.png', label: 'READY TO RUN!' },
         happy: { src: './assets/driver/dog/dog-happy.png', label: 'WOOF! WOOF!!' },
@@ -138,11 +155,13 @@
     spin: 0, spinDuration: .78, spinCooldown: 0, jumpCooldown: 0, nextRamp: 420,
     speedCelebrated: false, toastTimer: 0, countdown: 0, countdownMark: 0, raceActive: false,
     nextItem: 260, itemLane: .35, roulette: 0, heldItem: '', turbo: 0, shield: 0,
-    trainHitCooldown: 0, rescue: 0, paused: false, currentLap: 1, finished: false
+    trainHitCooldown: 0, rescue: 0, paused: false, currentLap: 1, finished: false,
+    signatureReady: true, signatureActive: 0, stealArmed: false
   };
   const rival = {
     distance: 72, previousRelative: 72, speed: 190, lane: -.38, targetLane: .42,
-    laneTimer: 1.7, hit: 0, collisionCooldown: 0, mood: 'neutral', moodTimer: 0
+    laneTimer: 1.7, hit: 0, collisionCooldown: 0, mood: 'neutral', moodTimer: 0,
+    heldItem: '', itemTimer: 6.5, useItemTimer: 0, turbo: 0
   };
   let reactionTimer = null;
 
@@ -260,6 +279,10 @@
     event.preventDefault();
     jumpButton.classList.remove('active');
   }));
+  signatureButton.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    activateSignature();
+  });
 
   const keys = {
     ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'gas', ArrowDown: 'brake',
@@ -267,6 +290,7 @@
   };
   addEventListener('keydown', event => {
     if (event.key.toLowerCase() === 'e') { useItem(); event.preventDefault(); return; }
+    if (event.key.toLowerCase() === 'q') { activateSignature(); event.preventDefault(); return; }
     if (event.code === 'Space') {
       requestJump();
       event.preventDefault();
@@ -383,11 +407,78 @@
     osc.connect(gain); gain.connect(masterGain || audioContext.destination); osc.start(now); osc.stop(now + duration);
   }
 
+  function playSignatureSound() {
+    playCountTone(165, .12);
+    setTimeout(() => playCountTone(330, .14), 85);
+    setTimeout(() => playCountTone(660, .22), 170);
+  }
+
+  function renderDriverProfile() {
+    const driver = drivers[selectedDriver];
+    const ability = driver.ability;
+    profileRole.textContent = driver.role;
+    profileCopy.textContent = driver.profile;
+    profileType.textContent = ability.typeLabel;
+    profileMove.textContent = ability.name;
+    profileEffect.textContent = ability.effect;
+    document.querySelectorAll('.type-legend span').forEach(item => item.classList.toggle('active', item.dataset.type === ability.type));
+    signatureName.textContent = ability.name;
+    updateSignatureButton();
+  }
+
+  function updateSignatureButton() {
+    const ability = drivers[selectedDriver].ability;
+    signatureName.textContent = ability.name;
+    signatureButton.classList.toggle('active', state.signatureActive > 0);
+    signatureButton.classList.toggle('armed', state.stealArmed);
+    signatureButton.classList.toggle('spent', !state.signatureReady && state.signatureActive <= 0 && !state.stealArmed);
+    if (state.signatureActive > 0) signatureState.textContent = `${state.signatureActive.toFixed(1)} SEC`;
+    else if (state.stealArmed) signatureState.textContent = 'STEAL ARMED';
+    else signatureState.textContent = state.signatureReady ? '1 SHOT' : 'SPENT';
+  }
+
+  function stealRivalItem() {
+    const stolen = rival.heldItem || ['turbo', 'shield', 'shock'][Math.floor(Math.random() * 3)];
+    rival.heldItem = '';
+    rival.useItemTimer = 0;
+    state.heldItem = stolen;
+    state.stealArmed = false;
+    updateItemSlot();
+    showToast(`LUCKY JACK STOLE ${stolen.toUpperCase()}!`, 1.35);
+    showReaction('MINE NOW!!');
+    setDriverMood('happy', 1.6);
+    updateSignatureButton();
+  }
+
+  function activateSignature() {
+    if (!state.running || !state.raceActive || state.paused || state.finished || !state.signatureReady) return;
+    const ability = drivers[selectedDriver].ability;
+    state.signatureReady = false;
+    setDriverMood(ability.mood, Math.max(1.6, ability.duration));
+    showReaction(ability.reaction);
+    showToast(`${ability.typeLabel} · ${ability.name}!`, 1.45);
+    playSignatureSound();
+    if (navigator.vibrate) navigator.vibrate([35, 30, 70]);
+
+    if (ability.type === 'charisma') {
+      if (rival.heldItem) stealRivalItem();
+      else {
+        state.stealArmed = true;
+        driverCard.classList.add('signature-fired');
+      }
+    } else {
+      state.signatureActive = ability.duration;
+      driverCard.classList.add('signature-fired');
+    }
+    updateSignatureButton();
+  }
+
   function applyDriverSelection() {
     const driver = drivers[selectedDriver];
     garagePreview.src = driver.preview;
     currentMood = '';
     setDriverMood('neutral');
+    renderDriverProfile();
     updateSetup();
     try { localStorage.setItem('nasuRiotDriver', selectedDriver); } catch (_) {}
   }
@@ -447,10 +538,12 @@
     state.position = 0; state.distance = 0; state.previousDistance = 0; state.nextRamp = 420;
     state.nextItem = 260; state.itemLane = .35; state.heldItem = ''; state.roulette = 0;
     state.spin = 0; state.jump = 0; state.rescue = 0; state.paused = false;
-    state.currentLap = 1; state.finished = false;
+    state.currentLap = 1; state.finished = false; state.signatureReady = true; state.signatureActive = 0; state.stealArmed = false;
     rival.distance = 72;
     rival.previousRelative = 72;
-    rival.speed = 190;
+    rival.speed = 190; rival.heldItem = ''; rival.itemTimer = 5.5 + Math.random() * 3; rival.useItemTimer = 0; rival.turbo = 0;
+    updateItemSlot();
+    updateSignatureButton();
     document.querySelector('#game-shell').classList.add('running');
     document.querySelector('#game-shell').classList.add('counting');
     startPanel.classList.add('hidden');
@@ -488,6 +581,7 @@
     moodTimer = duration;
     driverFace.src = moods[mood].src;
     driverCard.className = `driver-card mood-${mood}`;
+    if (state.signatureActive > 0 || state.stealArmed) driverCard.classList.add('signature-fired');
   }
 
   function setRivalMood(mood, duration = 0) {
@@ -1083,6 +1177,13 @@
   }
 
   function triggerRivalCollision() {
+    if (state.signatureActive > 0 && drivers[selectedDriver].ability.type === 'power') {
+      rival.hit = 2.1; rival.collisionCooldown = 1.5; rival.speed *= .38; state.speed *= .93; state.shake = 18;
+      setDriverMood('happy', 1.2); setRivalMood('angry', 1.6);
+      showToast('RAM JAM! RIVAL STUNNED!', 1.05); showReaction('BOOM!!'); playCrashSound();
+      if (navigator.vibrate) navigator.vibrate([45, 25, 80]);
+      return;
+    }
     if (state.shield > 0) {
       rival.hit = 1; rival.speed *= .55; state.shake = 10; showReaction('BLOCK!'); playCrashSound(); return;
     }
@@ -1100,8 +1201,49 @@
     if (navigator.vibrate) navigator.vibrate([70, 30, 100]);
   }
 
+  function receiveRivalItemAttack() {
+    const intellectGuard = state.signatureActive > 0 && drivers[selectedDriver].ability.type === 'intellect';
+    if (intellectGuard || state.shield > 0) {
+      showToast(intellectGuard ? 'BRAIN SHIELD! ATTACK CANCELLED!' : 'SHIELD BLOCKED THE HIT!', 1.15);
+      showReaction('NOPE!!');
+      setDriverMood('happy', 1.15);
+      playCountTone(720, .16);
+      return;
+    }
+    state.speed *= .58;
+    triggerSpin();
+    playCrashSound();
+    showReaction('CHEAP SHOT!!');
+  }
+
+  function updateRivalItems(dt, relative) {
+    rival.turbo = Math.max(0, rival.turbo - dt);
+    if (rival.heldItem) {
+      rival.useItemTimer -= dt;
+      if (rival.useItemTimer <= 0) {
+        const item = rival.heldItem;
+        rival.heldItem = '';
+        rival.itemTimer = 6.5 + Math.random() * 5;
+        if (item === 'turbo') {
+          rival.turbo = 2.4;
+          showToast('RIVAL FIRED NITRO!', .9);
+        } else if (Math.abs(relative) < 190) {
+          receiveRivalItemAttack();
+        }
+      }
+      return;
+    }
+    rival.itemTimer -= dt;
+    if (rival.itemTimer > 0) return;
+    rival.heldItem = Math.random() < .52 ? 'shock' : 'turbo';
+    rival.useItemTimer = 1.55;
+    if (state.stealArmed) stealRivalItem();
+    else showToast(`RIVAL GOT ${rival.heldItem.toUpperCase()}!`, .85);
+  }
+
   function updateRival(dt) {
     const relativeBefore = rival.distance - state.distance;
+    updateRivalItems(dt, relativeBefore);
     rival.laneTimer -= dt;
     if (rival.laneTimer <= 0) {
       rival.targetLane = -.72 + Math.random() * 1.44;
@@ -1111,6 +1253,7 @@
 
     const speedBuild = Math.min(100, state.distance * .18);
     let targetSpeed = 190 + speedBuild + Math.sin(state.time * .00062) * 30;
+    if (rival.turbo > 0) targetSpeed += 105;
     if (relativeBefore < -24) targetSpeed += 45;
     if (relativeBefore > 145) targetSpeed -= 45;
     if (rival.hit > 0) targetSpeed *= .68;
@@ -1180,6 +1323,14 @@
       }
       return;
     }
+    if (state.signatureActive > 0) {
+      state.signatureActive = Math.max(0, state.signatureActive - dt);
+      if (state.signatureActive === 0) {
+        driverCard.classList.remove('signature-fired');
+        showToast(`${drivers[selectedDriver].ability.name} COMPLETE`, .7);
+      }
+      updateSignatureButton();
+    }
     if (state.rescue > 0) {
       state.rescue = Math.max(0,state.rescue-dt);
       state.speed = 0;
@@ -1193,13 +1344,16 @@
     const steeringTarget = input.left ? -2 : input.right ? 2 : 0;
     state.steerVisual += (steeringTarget - state.steerVisual) * Math.min(1, dt * 9);
 
-    if (input.gas) state.speed += (155 * setupStats.accel - state.speed * .22) * dt;
+    const speedSignature = state.signatureActive > 0 && drivers[selectedDriver].ability.type === 'speed';
+    if (input.gas) state.speed += ((speedSignature ? 220 : 155) * setupStats.accel - state.speed * (speedSignature ? .12 : .22)) * dt;
+    if (speedSignature) state.speed += 145 * dt;
     if (state.turbo > 0) state.speed += 125 * dt;
     else state.speed -= 9 * dt;
     if (input.brake) state.speed -= 150 * dt;
     if (!onRoad) state.speed -= (105 / setupStats.dirt) * dt;
     if (state.spin > 0) state.speed -= 85 * dt;
-    state.speed = Math.max(0, Math.min(state.maxSpeed * (state.turbo > 0 ? 1.15 : 1), state.speed));
+    const speedLimitBoost = Math.max(state.turbo > 0 ? 1.15 : 1, speedSignature ? 1.28 : 1);
+    state.speed = Math.max(0, Math.min(state.maxSpeed * speedLimitBoost, state.speed));
 
     const steerPower = (.72 + speedRatio() * 1.55) * setupStats.grip * dt;
     if (state.spin <= 0) {

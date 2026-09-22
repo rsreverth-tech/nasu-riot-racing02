@@ -18,7 +18,7 @@
     <canvas id="game" aria-label="HOT ROD TOCHIGI ゲーム画面"></canvas>
 
     <header class="hud" aria-live="polite">
-      <div class="brand"><span>HOT ROD</span> TOCHIGI <small>PROTO 12 · PINK GRIP</small></div>
+      <div class="brand"><span>HOT ROD</span> TOCHIGI <small>PROTO 13 · CAREER RIOT</small></div>
       <div class="meters">
         <div class="speedometer" aria-label="スピードメーター">
           <span class="speedometer-ticks"></span><i id="speed-needle"></i><b></b>
@@ -91,23 +91,32 @@
         <div class="driver-grid">
           <button class="driver-choice selected" data-driver="woman" type="button">
             <span class="choice-number">01</span>
+            <span class="ability-tag">POWER TYPE</span>
             <img class="choice-car" src="./assets/select/woman-sedan-three-quarter.png" alt="パールクリームとピンクのセダン 前方斜め" />
             <img class="choice-face" src="./assets/driver/woman/woman-neutral-v2.png" alt="女性セダンドライバー" />
             <span class="choice-copy"><strong>THE CLOSER</strong><small>SEDAN · PINK SCALLOP</small></span>
           </button>
           <button class="driver-choice" data-driver="speedster" type="button">
             <span class="choice-number">02</span>
+            <span class="ability-tag">SPEED TYPE</span>
             <img class="choice-car" src="./assets/select/speed-coupe-three-quarter.png" alt="ワインレッドのスピードクーペ 前方斜め" />
             <img class="choice-face" src="./assets/rival/speed-rival-neutral-v2.png" alt="スピードスター" />
             <span class="choice-copy"><strong>THE SPEEDSTER</strong><small>SPEED · LIGHTNING COUPE</small></span>
           </button>
           <button class="driver-choice" data-driver="dog" type="button">
             <span class="choice-number">03</span>
+            <span class="ability-tag">CHARISMA TYPE</span>
             <img class="choice-car" src="./assets/select/dog-offroad-three-quarter.png" alt="愛犬用オフロードホットロッド 前方斜め" />
             <img class="choice-face" src="./assets/driver/dog/dog-neutral.png" alt="ゴールデンレトリバーのドライバー" />
             <span class="choice-copy"><strong>GOLDEN ACE</strong><small>OFF ROAD · GOLDEN HOWLER</small></span>
           </button>
         </div>
+        <article id="driver-profile" class="driver-profile" aria-live="polite">
+          <div class="profile-role"><small>MEET THE CREW</small><strong id="profile-role">営業・顧客サポート</strong></div>
+          <p id="profile-copy">相談を整理し、仲間を巻き込みながら最後までやり切るチームの推進役。</p>
+          <div class="profile-skill"><span id="profile-type">POWER TYPE</span><strong id="profile-move">RAM JAM</strong><small id="profile-effect">一定時間、接触した相手をひるませる</small></div>
+          <div class="type-legend" aria-label="仕事タイプ一覧"><span data-type="power">POWER</span><span data-type="speed">SPEED</span><span data-type="intellect">INTELLECT</span><span data-type="charisma">CHARISMA</span></div>
+        </article>
         <div class="select-actions"><button id="select-back" type="button">← TITLE</button><button id="select-continue" class="menu-main-button" type="button">SETUP MACHINE</button></div>
       </div>
 
@@ -169,10 +178,21 @@
         <button id="left" class="control steer" type="button" aria-label="左へ曲がる">◀</button>
         <button id="right" class="control steer" type="button" aria-label="右へ曲がる">▶</button>
       </div>
+      <button id="signature-button" class="signature-button" type="button" aria-label="SIGNATURE MOVEを使う">
+        <span>SIGNATURE</span>
+        <svg viewBox="0 0 64 44" aria-hidden="true"><path d="M7 28 17 17l8 5 8-16 8 16 8-5 8 11-11 10H18Z"/><path d="m22 30 9-9 5 5 8-10"/></svg>
+        <strong id="signature-name">RAM JAM</strong><small id="signature-state">1 SHOT</small>
+      </button>
       <div class="pedals">
-        <button id="brake" class="control brake" type="button">BRAKE</button>
-        <button id="jump" class="control jump" type="button">JUMP</button>
-        <button id="gas" class="control gas" type="button">GAS</button>
+        <button id="brake" class="control brake" type="button" aria-label="ブレーキ">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="30" cy="32" r="20"/><circle cx="30" cy="32" r="7"/><path d="M43 17h11v30H43l-6-8V25Z"/><path d="M10 17 4 10M9 32H1M10 47l-6 7"/></svg>
+        </button>
+        <button id="jump" class="control jump" type="button" aria-label="ジャンプ">
+          <svg viewBox="0 0 72 64" aria-hidden="true"><path d="M5 50h25l11-14h25"/><circle cx="22" cy="43" r="6"/><circle cx="50" cy="35" r="6"/><path d="M20 32h34l-8-9H29Z"/><path d="M36 20V3m0 0-8 9m8-9 8 9"/></svg>
+        </button>
+        <button id="gas" class="control gas" type="button" aria-label="アクセル">
+          <svg viewBox="0 0 64 72" aria-hidden="true"><path d="M24 5h16l7 13-6 34H23l-6-34Z"/><path d="M25 22h14M24 30h14M23 38h14"/><path d="M19 55c-8 4-9 11-6 15 4-5 8-5 11-12m21-3c8 4 9 11 6 15-4-5-8-5-11-12"/></svg>
+        </button>
       </div>
     </section>
 
