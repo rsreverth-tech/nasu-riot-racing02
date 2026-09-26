@@ -79,6 +79,7 @@
     sideRight: loadImage('./assets/car-woman/side-right.png'),
     underside: loadImage('./assets/car-woman/jump-underside.png')
   };
+  const womanCarFallback = loadImage('./assets/select/woman-sedan-three-quarter.png');
 
   const drivers = {
     woman: {
@@ -443,7 +444,7 @@
     rival.useItemTimer = 0;
     state.heldItem = stolen;
     state.stealArmed = false;
-    updateItemSlot();
+    updateItemSlot(true);
     showToast(`LUCKY JACK STOLE ${stolen.toUpperCase()}!`, 1.35);
     showReaction('MINE NOW!!');
     setDriverMood('happy', 1.6);
@@ -619,12 +620,20 @@
     setTimeout(() => lapBanner.classList.remove('show'),1750);
   }
 
-  function updateItemSlot() {
-    const labels = { turbo: ['NITRO', 'BOOST!'], shield: ['SHIELD', 'BLOCK!'], shock: ['SHOCK', 'ZAP!'] };
-    const item = labels[state.heldItem];
-    itemSlot.classList.toggle('empty', !item);
-    itemSlot.querySelector('strong').textContent = state.roulette > 0 ? ['?', '⚡', 'N₂O', '◆'][Math.floor(state.time / 75) % 4] : (item ? item[0] : '?');
-    itemSlot.querySelector('span').textContent = state.roulette > 0 ? 'ROLLING' : (item ? item[1] : 'EMPTY');
+  function updateItemSlot(reveal = false) {
+    const labels = { turbo: 'ニトロブースト', shield: '攻撃防御シールド', shock: '電撃ショック' };
+    const rouletteIcons = ['turbo', 'shield', 'shock'];
+    const visualItem = state.roulette > 0 ? rouletteIcons[Math.floor(state.time / 90) % rouletteIcons.length] : (state.heldItem || 'empty');
+    itemSlot.dataset.item = visualItem;
+    itemSlot.classList.toggle('empty', visualItem === 'empty');
+    itemSlot.classList.toggle('rolling', state.roulette > 0);
+    itemSlot.setAttribute('aria-label', state.roulette > 0 ? 'アイテム抽選中' : (labels[state.heldItem] ? `${labels[state.heldItem]}を使う` : 'アイテム未所持'));
+    if (visualItem === 'empty') itemSlot.classList.remove('loaded');
+    if (reveal && visualItem !== 'empty') {
+      itemSlot.classList.remove('loaded');
+      void itemSlot.offsetWidth;
+      itemSlot.classList.add('loaded');
+    }
   }
 
   function useItem() {
@@ -1055,16 +1064,20 @@
   function currentCarSprite() {
     if (selectedDriver === 'speedster') return speedCarSprite;
     if (selectedDriver === 'woman') {
+      let desiredSprite;
       if (state.spin > 0) {
         const frames=[womanCarAngles.rearLeft,womanCarAngles.sideLeft,womanCarAngles.front,womanCarAngles.sideRight,womanCarAngles.rearRight,womanCarAngles.sideRight,womanCarAngles.front,womanCarAngles.sideLeft];
         const progress=1-state.spin/state.spinDuration;
-        return frames[Math.floor(progress*frames.length)%frames.length];
-      }
-      if (state.jump > 0) {
+        desiredSprite = frames[Math.floor(progress*frames.length)%frames.length];
+      } else if (state.jump > 0) {
         const progress=1-state.jump/state.jumpDurationCurrent;
-        return progress>.28&&progress<.78?womanCarAngles.underside:womanCarAngles.rearLeft;
+        desiredSprite = progress>.28&&progress<.78?womanCarAngles.underside:womanCarAngles.rearLeft;
+      } else {
+        desiredSprite = state.steerVisual<-.35?womanCarAngles.rearRight:womanCarAngles.rearLeft;
       }
-      return state.steerVisual<-.35?womanCarAngles.rearRight:womanCarAngles.rearLeft;
+      if (desiredSprite.complete && desiredSprite.naturalWidth) return desiredSprite;
+      if (womanCarFallback.complete && womanCarFallback.naturalWidth) return womanCarFallback;
+      return carSprites.steering[2];
     }
     if (selectedDriver === 'dog') {
       if (state.spin > 0) {
@@ -1392,11 +1405,13 @@
     }
     if (state.roulette > 0) {
       state.roulette = Math.max(0,state.roulette-dt);
+      let itemResolved = false;
       if (state.roulette === 0) {
         const items = ['turbo','shield','shock']; state.heldItem = items[Math.floor(Math.random()*items.length)];
         showReaction(state.heldItem.toUpperCase() + '!');
+        itemResolved = true;
       }
-      updateItemSlot();
+      updateItemSlot(itemResolved);
     }
     state.turbo = Math.max(0,state.turbo-dt);
     state.shield = Math.max(0,state.shield-dt);

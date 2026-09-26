@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hot-rod-tochigi-v13';
+const CACHE_NAME = 'hot-rod-tochigi-v14';
 const CORE_ASSETS = [
   './',
   './index.html',

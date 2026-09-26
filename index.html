@@ -18,7 +18,7 @@
     <canvas id="game" aria-label="HOT ROD TOCHIGI ゲーム画面"></canvas>
 
     <header class="hud" aria-live="polite">
-      <div class="brand"><span>HOT ROD</span> TOCHIGI <small>PROTO 13 · CAREER RIOT</small></div>
+      <div class="brand"><span>HOT ROD</span> TOCHIGI <small>PROTO 14 · ICON GARAGE</small></div>
       <div class="meters">
         <div class="speedometer" aria-label="スピードメーター">
           <span class="speedometer-ticks"></span><i id="speed-needle"></i><b></b>
@@ -43,7 +43,38 @@
       <small>● YOU　◆ RIVAL</small>
     </aside>
 
-    <button id="item-slot" class="item-slot empty" type="button" aria-label="入手したアイテムを使う"><small>ITEM</small><strong>?</strong><span>EMPTY</span></button>
+    <button id="item-slot" class="item-slot empty" data-item="empty" type="button" aria-label="アイテム未所持">
+      <span class="item-bezel" aria-hidden="true">
+        <svg class="item-art" viewBox="0 0 100 100">
+          <g class="item-icon icon-empty">
+            <circle class="metal-dark" cx="50" cy="50" r="29"/><circle class="metal-light" cx="50" cy="50" r="18"/>
+            <path class="ink-line" d="M50 22v56M22 50h56M30 30l40 40M70 30 30 70"/>
+            <circle class="hot-pink" cx="50" cy="50" r="7"/>
+          </g>
+          <g class="item-icon icon-turbo">
+            <path class="cream-fill ink-stroke" d="M37 22h26l5 9-5 48H37l-5-48Z"/>
+            <path class="metal-light ink-stroke" d="M41 14h18v10H41z"/><path class="hot-pink ink-stroke" d="M38 43h25v21H38z"/>
+            <path class="cream-line" d="m45 59 5-12 5 12 4-8"/>
+            <path class="orange-fill ink-stroke" d="M33 67c-13 5-18 14-14 23 7-7 13-7 19-11m29-12c13 5 18 14 14 23-7-7-13-7-19-11"/>
+            <path class="yellow-fill ink-stroke" d="M43 79 50 94l7-15Z"/>
+          </g>
+          <g class="item-icon icon-shield">
+            <path class="metal-light ink-stroke" d="M50 13 78 25v22c0 19-12 32-28 41-16-9-28-22-28-41V25Z"/>
+            <path class="hot-pink ink-stroke" d="M50 24 67 32v15c0 12-7 21-17 28-10-7-17-16-17-28V32Z"/>
+            <path class="yellow-line" d="M50 28v42M34 43h32"/>
+            <path class="cream-fill ink-stroke" d="m16 24 10-7 13 21-9 6Zm68 0-10-7-13 21 9 6Z"/>
+            <circle class="orange-fill ink-stroke" cx="22" cy="18" r="5"/><circle class="orange-fill ink-stroke" cx="78" cy="18" r="5"/>
+          </g>
+          <g class="item-icon icon-shock">
+            <path class="cream-fill ink-stroke" d="M43 14h18l-3 29H46Z"/><path class="metal-light ink-stroke" d="M39 24h26M40 32h24M42 40h20"/>
+            <path class="hot-pink ink-stroke" d="m45 43 13 2-4 13-12-2Z"/><path class="metal-light ink-stroke" d="m43 56 10 2-3 14-10-2Z"/>
+            <path class="yellow-fill ink-stroke" d="m28 13-12 24h13L19 60l29-34H35l9-13Z"/>
+            <path class="orange-fill ink-stroke" d="m68 43 16-9-5 15 10 2-20 20 4-15-10-2Z"/>
+            <circle class="cream-fill ink-stroke" cx="45" cy="80" r="5"/>
+          </g>
+        </svg>
+      </span>
+    </button>
     <div id="reaction-pop" class="reaction-pop" aria-live="assertive"><span>WOW!</span></div>
     <div id="countdown" class="countdown" aria-live="assertive"></div>
     <div id="lap-banner" class="lap-banner" aria-live="assertive"></div>
