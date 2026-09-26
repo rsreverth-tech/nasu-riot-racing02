@@ -1,0 +1,2285 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>とちぎ ふしぎの森 - とちコレ！ v77</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap');
+:root{--jp-pop:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Maru Gothic Pro","Yu Gothic","Meiryo",sans-serif}
+*{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07130d;color:#fff;font-family:var(--jp-pop)} button,input,select,textarea{font-family:var(--jp-pop)}
+#app{position:relative;width:100vw;height:100vh;background:#07130d}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+#hud{position:absolute;inset:16px 20px auto 20px;display:flex;justify-content:space-between;z-index:5;pointer-events:none}
+.hudbox{
+ position:relative;isolation:isolate;min-width:190px;min-height:88px;padding:10px 22px 12px;border-radius:15px;
+ background:
+   linear-gradient(180deg,rgba(255,255,255,.12),transparent 24%),
+   repeating-linear-gradient(7deg,rgba(255,255,255,.025) 0 2px,transparent 2px 9px),
+   linear-gradient(180deg,#6f4828 0%,#4d2f1b 52%,#342012 100%);
+ border:3px solid #d8b96c;
+ box-shadow:
+   inset 0 0 0 2px rgba(63,33,13,.72),
+   inset 0 3px 0 rgba(255,245,190,.18),
+   0 6px 0 #1b120a,0 10px 20px rgba(0,0,0,.30),0 0 18px rgba(114,190,88,.18);
+ transform:rotate(-.35deg);
+}
+.hudbox::before{
+ content:"";position:absolute;z-index:-1;left:-14px;top:-10px;width:42px;height:32px;
+ background:radial-gradient(ellipse at 70% 70%,#79a94d 0 42%,#3e6d35 44% 68%,transparent 70%),
+            radial-gradient(ellipse at 30% 30%,#9bc35c 0 38%,#4b7938 40% 67%,transparent 69%);
+ transform:rotate(-25deg);filter:drop-shadow(0 2px 2px rgba(0,0,0,.32));
+}
+.hudbox::after{
+ content:"";position:absolute;z-index:-1;right:-12px;bottom:-8px;width:46px;height:28px;
+ border-bottom:5px solid #507c38;border-radius:50%;transform:rotate(-13deg);
+ box-shadow:12px 3px 0 -8px #89b95a,-10px 0 0 -8px #75a64e;
+}
+.hudbox.timeSign{transform:rotate(.35deg);text-align:right}
+.label{
+ font-size:15px;line-height:1;letter-spacing:.18em;font-weight:900;margin-bottom:3px;
+ color:#fff8d9;text-shadow:0 2px 0 #38200f,0 0 7px rgba(255,244,185,.24);
+ -webkit-text-stroke:.55px rgba(55,28,11,.72);
+}
+.value{
+ font-size:44px;line-height:1;font-weight:1000;font-style:italic;white-space:nowrap;
+ color:#fff9df;text-shadow:0 3px 0 #3a210f,0 0 9px rgba(255,239,166,.34),0 5px 10px rgba(0,0,0,.28);
+ -webkit-text-stroke:1.2px rgba(55,28,11,.88);
+}
+.scoreValue #score{font-size:48px}
+.ptUnit{font-size:.43em;margin-left:.16em;vertical-align:.18em;letter-spacing:.01em;font-style:normal;font-weight:900}
+#koBox{display:none!important}
+@media(max-width:720px){
+ #hud{inset:10px 10px auto 10px}
+ .hudbox{min-width:142px;min-height:72px;padding:8px 14px 10px}
+ .label{font-size:12px}.value{font-size:35px}.scoreValue #score{font-size:39px}
+}
+#center{position:absolute;inset:0;display:grid;place-items:center;z-index:9;pointer-events:none;text-align:center}
+#message{font-size:clamp(40px,7vw,96px);font-weight:1000;font-style:italic;line-height:1.02;text-shadow:0 6px 0 #351c0b,0 0 28px #000;opacity:0;transform:scale(.7);transition:.12s}
+.screen{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 38%,rgba(35,90,55,.72),rgba(4,15,9,.96))}
+.card{width:min(760px,92vw);padding:30px;border-radius:26px;background:linear-gradient(145deg,#163520ee,#07170eee);border:2px solid #d6ec9d;box-shadow:0 25px 90px #000}
+h1{font-size:clamp(38px,6vw,72px);line-height:.95;margin:6px 0 14px;font-style:italic;text-shadow:0 5px 0 #173f20}
+p{line-height:1.65;color:#e8f2df}.sub{font-size:13px;color:#bfe09e;letter-spacing:.12em}
+button{
+ border:1px solid rgba(255,255,255,.38);border-radius:14px;padding:14px 22px;margin:6px;
+ background:linear-gradient(180deg,#fff39a 0%,#ffe05a 34%,#e6a629 100%);
+ font-size:17px;font-weight:1000;color:#2c1a05;cursor:pointer;
+ box-shadow:inset 0 2px 0 rgba(255,255,255,.72),inset 0 -2px 0 rgba(121,72,7,.18),0 5px 0 #825613,0 9px 18px rgba(0,0,0,.18);
+ text-shadow:0 1px 0 rgba(255,255,255,.45);letter-spacing:.02em;
+ transition:transform .12s ease,filter .12s ease,box-shadow .12s ease;
+}
+button:hover{filter:brightness(1.06) saturate(1.04);transform:translateY(-1px)}
+button:active{transform:translateY(4px);box-shadow:inset 0 2px 5px rgba(90,50,0,.16),0 1px 0 #825613}
+button.secondary{
+ background:linear-gradient(180deg,#47765a 0%,#315942 42%,#173323 100%);color:#fff;
+ border-color:rgba(220,255,225,.25);
+ box-shadow:inset 0 2px 0 rgba(255,255,255,.16),0 5px 0 #091b10,0 9px 18px rgba(0,0,0,.18);
+ text-shadow:0 2px 0 rgba(0,0,0,.35);
+}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.hidden{display:none!important}
+#camera{position:fixed;right:14px;bottom:82px;width:230px;height:130px;object-fit:cover;z-index:12;border:2px solid #fff;border-radius:10px;display:none;transform:none}
+#detectStatus{position:fixed;left:14px;bottom:14px;z-index:13;background:#000b;padding:8px 12px;border-radius:10px;display:none}
+#cameraCanvas{display:none}
+#legend{margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.legendItem{background:#ffffff0c;border:1px solid #ffffff20;border-radius:12px;padding:8px;text-align:center;font-size:12px}
+
+#cameraSetupOverlay{position:absolute;inset:0;z-index:38;display:none;background:linear-gradient(90deg,rgba(2,10,7,.96) 0 46%,rgba(2,10,7,.42) 46% 100%)}
+#cameraSetupCard{position:absolute;left:3vw;top:50%;transform:translateY(-50%);width:min(560px,40vw);background:rgba(3,15,9,.96);border:2px solid #d6ec9d;border-radius:20px;padding:22px 24px;box-shadow:0 20px 60px #000;z-index:42}
+#cameraSetupCard h2{margin:0 0 10px;font-size:clamp(24px,3vw,38px)}
+#cameraSetupCard p{line-height:1.65;margin:9px 0}
+#cameraSetupCard .setupImportant{color:#ffe86a;font-weight:1000}
+#cameraSetupCard .setupMeasure{background:#ffffff10;border:1px solid #ffffff25;border-radius:14px;padding:12px 14px;margin:12px 0}
+#camera.setupPreview{display:block!important;right:3vw;bottom:50%;transform:translateY(50%);width:48vw;height:auto;max-height:78vh;aspect-ratio:16/9;object-fit:contain;z-index:41;border:4px solid #fff;border-radius:16px;background:#000;box-shadow:0 20px 60px #000}
+#cameraSetupActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+#screenFrameOverlay{position:fixed;inset:0;z-index:43;pointer-events:none;display:none}
+#screenFrameHitArea{position:fixed;z-index:45;display:none;background:transparent;cursor:crosshair;touch-action:none;pointer-events:auto}
+.screenFramePoint{position:fixed;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:4px solid #fff;background:#ffcf33;box-shadow:0 0 0 4px #0009,0 0 20px #ffcf33;z-index:44;pointer-events:none}
+#screenFrameSvg{position:fixed;inset:0;width:100vw;height:100vh;overflow:visible}
+#screenFrameSvg polyline{fill:rgba(255,207,51,.10);stroke:#ffcf33;stroke-width:4;stroke-dasharray:10 7}
+#camera.setupPreview{cursor:crosshair}
+#cameraSetupContinue:disabled{opacity:.42;filter:grayscale(.8);cursor:not-allowed}
+@media(max-width:900px){#cameraSetupOverlay{background:rgba(2,10,7,.9)}#cameraSetupCard{left:4vw;top:auto;bottom:3vh;transform:none;width:92vw;padding:14px 16px}#camera.setupPreview{right:5vw;bottom:auto;top:3vh;transform:none;width:90vw;max-height:48vh}}
+#calibrationOverlay{position:absolute;inset:0;z-index:40;display:none;background:rgba(0,0,0,.42);pointer-events:none}
+#calibrationMarker{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border:7px solid #fff;border-radius:50%;box-shadow:0 0 0 6px rgba(255,220,70,.88),0 0 35px #000}
+#calibrationMarker:before,#calibrationMarker:after{content:"";position:absolute;background:#fff;left:50%;top:50%;transform:translate(-50%,-50%)}
+#calibrationMarker:before{width:100px;height:5px}
+#calibrationMarker:after{width:5px;height:100px}
+#calibrationPanel{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);pointer-events:auto;background:rgba(3,15,9,.94);border:2px solid #d6ec9d;border-radius:18px;padding:14px 18px;text-align:center;min-width:min(640px,92vw);box-shadow:0 20px 60px #000}
+#calibrationPanel strong{font-size:20px}
+#calibrationPanel p{margin:7px 0 10px}
+#calibrationState{margin-top:10px;color:#ffe86a}
+
+
+#detectDot{
+  position:fixed;z-index:14;display:none;width:62px;height:62px;
+  margin-left:-31px;margin-top:-31px;border:5px solid rgba(255,255,255,.96);border-radius:50%;
+  box-shadow:0 0 0 5px rgba(255,91,168,.82),0 0 0 9px rgba(255,255,255,.16),0 0 34px rgba(255,80,160,.95);
+  pointer-events:none;
+}
+#detectDot:before,#detectDot:after{
+  content:"";position:absolute;left:50%;top:50%;background:#fff;transform:translate(-50%,-50%);
+}
+#detectDot:before{width:84px;height:3px;border-radius:3px}
+#detectDot:after{width:3px;height:84px;border-radius:3px}
+
+
+
+
+.captureCard{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.045));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 5px 14px rgba(0,0,0,.15)}
+.captureIcon img{filter:drop-shadow(0 5px 5px rgba(0,0,0,.28))}
+.resultActions{display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:18px}
+#again.resultAgain{width:min(460px,92%);min-height:74px;border-radius:22px;font-size:clamp(23px,3vw,31px);letter-spacing:.04em;background:linear-gradient(180deg,#fff7ae 0%,#ffe55c 38%,#efa929 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.78),inset 0 -3px 0 rgba(145,84,0,.18),0 8px 0 #86570d,0 14px 28px rgba(0,0,0,.25)}
+#again.resultAgain:active{transform:translateY(6px);box-shadow:inset 0 2px 5px rgba(90,50,0,.16),0 2px 0 #86570d}
+.enterHint{display:inline-block;margin-left:10px;padding:4px 8px;border-radius:7px;font-size:10px;vertical-align:middle;letter-spacing:.10em;color:#fff7d0;background:rgba(58,34,5,.72);border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+#back.resultBack{width:min(280px,72%);font-size:14px;padding:11px 18px;opacity:.94}
+
+
+/* v73: cream-white typography with explicit fallback, outline and glow */
+#message,#bossInstruction,#resultScore,#captureSummary,.captureName,.captureCount,#resultText{
+ color:#fff8df;
+ -webkit-text-fill-color:#fff8df;
+ -webkit-text-stroke:1px rgba(46,28,12,.78);
+ text-shadow:0 2px 0 #3d2512,0 0 8px rgba(255,245,198,.34),0 5px 12px rgba(0,0,0,.32);
+}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+ #message,#bossInstruction,#resultScore,#captureSummary,.captureName,.captureCount,#resultText{
+  background:linear-gradient(180deg,#ffffff 0%,#fffdf0 34%,#fff1bd 68%,#e8c36d 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+ }
+}
+#message{
+ font-size:clamp(38px,6vw,82px);
+ filter:drop-shadow(0 4px 0 rgba(23,49,15,.92)) drop-shadow(0 8px 15px rgba(0,0,0,.35));
+ -webkit-text-stroke:2px rgba(23,49,15,.82);
+}
+#bossInstruction{
+ filter:drop-shadow(0 3px 0 #6d2100) drop-shadow(0 0 14px rgba(255,189,63,.70));
+ -webkit-text-stroke:1.5px rgba(75,22,0,.78);
+}
+#resultScore{filter:drop-shadow(0 4px 0 rgba(23,63,32,.78)) drop-shadow(0 8px 16px rgba(0,0,0,.28))}
+#resultScore .resultPtUnit{font-size:.36em;vertical-align:.22em;margin-left:.18em}
+.captureName{font-size:13px!important}
+.captureCount{font-size:12px!important}
+
+
+/* Forest-festival UI polish: carved signs, cream type, restrained decorative foliage */
+.card{
+ position:relative;overflow:visible;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.055),transparent 22%),
+  linear-gradient(145deg,#173821f2,#07170ef2);
+ border:3px solid #d7c27a;
+ box-shadow:inset 0 0 0 2px rgba(44,85,48,.72),inset 0 2px 0 rgba(255,255,255,.12),0 25px 90px #000;
+}
+.card::before,.card::after{
+ content:"";position:absolute;pointer-events:none;width:68px;height:42px;z-index:2;
+ background:
+  radial-gradient(ellipse at 25% 65%,#91bd5b 0 30%,#4d7e3b 32% 58%,transparent 60%),
+  radial-gradient(ellipse at 68% 35%,#b0cf6b 0 27%,#5d8b43 29% 56%,transparent 58%);
+ filter:drop-shadow(0 3px 2px rgba(0,0,0,.3));
+}
+.card::before{left:-24px;top:-17px;transform:rotate(-22deg)}
+.card::after{right:-24px;bottom:-17px;transform:rotate(158deg)}
+h1,.sub,p,#resultText{
+ color:#fff8df;
+ text-shadow:0 2px 0 #173f20,0 0 8px rgba(255,247,204,.22),0 4px 10px rgba(0,0,0,.28);
+}
+.sub{color:#f6e9b6;font-weight:800}
+button{
+ color:#fff8df;
+ -webkit-text-fill-color:#fff8df;
+ border:2px solid #d6bd73;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.10),transparent 25%),
+  repeating-linear-gradient(8deg,rgba(255,255,255,.018) 0 2px,transparent 2px 8px),
+  linear-gradient(180deg,#6e4b2c 0%,#50331e 55%,#352114 100%);
+ box-shadow:inset 0 0 0 2px rgba(59,31,13,.66),inset 0 3px 0 rgba(255,244,190,.15),0 6px 0 #211409,0 10px 20px rgba(0,0,0,.24);
+ text-shadow:0 2px 0 #2c190c,0 0 7px rgba(255,246,197,.24);
+ -webkit-text-stroke:.5px rgba(49,26,11,.64);
+}
+button.secondary{
+ color:#fff8df;-webkit-text-fill-color:#fff8df;
+ border-color:#a8c77b;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.10),transparent 25%),
+  linear-gradient(180deg,#426b42 0%,#2d5134 55%,#173323 100%);
+ box-shadow:inset 0 0 0 2px rgba(17,51,31,.72),inset 0 3px 0 rgba(255,255,255,.10),0 6px 0 #091b10,0 10px 20px rgba(0,0,0,.24);
+}
+button::before{content:"✦";font-size:.72em;margin-right:.42em;color:#fff0a8;-webkit-text-fill-color:#fff0a8;text-shadow:0 0 8px rgba(255,226,99,.5)}
+#again.resultAgain{
+ color:#fff8df;-webkit-text-fill-color:#fff8df;border-color:#f1d578;
+ background:linear-gradient(180deg,#7f5a30 0%,#65401f 48%,#422713 100%);
+ box-shadow:inset 0 0 0 2px rgba(72,39,14,.7),inset 0 3px 0 rgba(255,247,195,.20),0 8px 0 #281708,0 14px 28px rgba(0,0,0,.28);
+}
+.enterHint{color:#fff7d0!important;-webkit-text-fill-color:#fff7d0!important}
+
+
+.messageSub{
+ font-size:.42em;margin-top:.18em;color:#fff3c2;-webkit-text-fill-color:#fff3c2;
+ -webkit-text-stroke:.8px rgba(45,27,10,.72);
+ text-shadow:0 2px 0 #3d2512,0 0 8px rgba(255,230,130,.45);
+}
+
+#settingsScreen{
+  position:absolute;inset:0;z-index:35;display:grid;place-items:center;
+  background:rgba(2,10,7,.88);backdrop-filter:blur(5px);
+}
+.speedOptions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.speedBtn{
+  min-height:116px;padding:16px;border-radius:18px;border:3px solid transparent;
+  background:linear-gradient(#315942,#173323);color:#fff;text-align:left;
+  box-shadow:0 6px 0 #091b10;transition:.15s;
+}
+.speedBtn .speedTitle{display:block;font-size:23px;font-weight:1000;margin-bottom:6px}
+.speedBtn .speedDesc{display:block;font-size:13px;line-height:1.55;color:#dcebdd}
+.speedBtn.selected{
+  border-color:#ffe35a;background:linear-gradient(#5b6f30,#34451a);
+  box-shadow:0 6px 0 #6d5511,0 0 26px rgba(255,226,80,.35);
+}
+#speedBadge{
+  position:absolute;left:18px;bottom:18px;z-index:6;pointer-events:none;
+  padding:7px 11px;border-radius:10px;background:rgba(0,0,0,.55);
+  border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:900;
+}
+
+
+#capturedGrid{margin-top:16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-height:280px;overflow:auto;padding:6px}
+.captureCard{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:10px 8px;text-align:center}
+.captureIcon{font-size:42px;line-height:1.1;min-height:48px;display:grid;place-items:center}
+.captureIcon img{max-width:64px;max-height:64px;object-fit:contain}
+.captureName{font-size:12px;font-weight:900;margin-top:4px;color:#fff}
+.captureCount{font-size:11px;color:#ffe56a;margin-top:2px}
+#captureSummary{font-size:18px;font-weight:1000;color:#ffe56a;margin-top:4px}
+#bossInstruction{
+ display:none;position:absolute;left:50%;top:14%;transform:translateX(-50%);
+ z-index:35;pointer-events:none;white-space:normal;text-align:center;line-height:1.18;
+ font-family:var(--jp-pop);font-size:clamp(25px,4vw,54px);
+ font-weight:1000;color:#fff36a;-webkit-text-stroke:2px #4b1600;
+ text-shadow:0 4px 0 #7d2500,0 0 18px #ff8a00;
+ animation:bossMsgPulse .62s ease-in-out infinite alternate;
+}
+@keyframes bossMsgPulse{
+ from{transform:translateX(-50%) scale(.96)}
+ to{transform:translateX(-50%) scale(1.06)}
+}
+
+#startCamera.mainStartButton{
+ width:min(560px,92%);
+ min-height:82px;
+ font-size:clamp(22px,3vw,34px);
+ font-weight:1000;
+ border-radius:22px;
+ padding:18px 28px;
+ box-shadow:0 8px 0 rgba(0,0,0,.24),0 12px 28px rgba(0,0,0,.22);
+ transform:translateY(0);
+}
+#startCamera.mainStartButton:active{transform:translateY(4px);box-shadow:0 4px 0 rgba(0,0,0,.24)}
+#startCamera .enterHint{
+ display:inline-block;margin-left:14px;padding:5px 10px;border-radius:8px;
+ font-size:.48em;vertical-align:middle;background:rgba(255,255,255,.2);
+ border:1px solid rgba(255,255,255,.5);letter-spacing:.08em;
+}
+
+.audioSettings{margin:22px auto 18px;max-width:620px;padding:18px 20px;border-radius:18px;background:rgba(0,0,0,.18)}
+.volumeRow{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:18px;margin:13px 0}
+.volumeRow label{font-weight:900;text-align:left}
+.volumeRow input[type=range]{width:100%;accent-color:#ffd45c;cursor:pointer}
+.volumeRow span{display:inline-block;min-width:42px;text-align:right}
+@media(max-width:600px){.volumeRow{grid-template-columns:1fr;gap:6px}}
+
+/* V56: festival-game title typography and rarity typography */
+#startScreen h1{
+ position:relative;
+ letter-spacing:.045em;
+ -webkit-text-stroke:2px rgba(54,35,18,.9);
+ text-shadow:
+   0 3px 0 rgba(255,255,255,.92),
+   0 6px 0 rgba(66,42,20,.75),
+   0 10px 18px rgba(0,0,0,.28);
+}
+#startScreen h1::after{
+ content:'';
+ display:block;
+ width:min(360px,72%);
+ height:5px;
+ margin:12px auto 0;
+ border-radius:999px;
+ background:linear-gradient(90deg,transparent,#fff3b0 18%,#fff 50%,#fff3b0 82%,transparent);
+ box-shadow:0 3px 0 rgba(64,39,18,.48);
+}
+.rarityText{
+ font-family:var(--jp-pop);
+ font-weight:1000;
+ letter-spacing:.12em;
+ paint-order:stroke fill;
+ -webkit-text-stroke:1px rgba(30,20,12,.8);
+ text-shadow:0 3px 0 rgba(0,0,0,.34),0 0 12px currentColor;
+}
+.rarityText.sr{color:#d99148}
+.rarityText.ssr{color:#f4f8fb;text-shadow:0 3px 0 #56616a,0 0 10px #fff,0 0 22px #dcecff}
+.rarityText.ur{color:#ffe56a;text-shadow:0 3px 0 #8a5b00,0 0 10px #fff3a0,0 0 24px #ffd700,0 0 38px #ffbd00}
+.audioPresetBtn{min-height:42px!important;padding:8px 16px!important;font-size:14px!important;margin-top:8px}
+
+#startScreen{overflow:auto}
+#startScreen .card{
+ width:min(1040px,94vw);
+ max-height:none;
+ padding:clamp(14px,2.2vh,28px) clamp(16px,3vw,36px);
+}
+#startScreen .titleVersion{font-size:11px;opacity:.66;margin-bottom:2px}
+#startScreen .titleLogo{
+ display:block;
+ width:min(900px,92%);
+ max-height:44vh;
+ object-fit:contain;
+ margin:0 auto clamp(4px,1vh,10px);
+ filter:drop-shadow(0 8px 10px rgba(0,0,0,.22));
+}
+#startScreen .titleLead{
+ margin:2px auto 12px;
+ font-size:clamp(14px,1.6vw,19px);
+ line-height:1.45;
+}
+#startScreen .row{gap:10px;margin-top:8px}
+#startScreen .mainStartButton{
+ flex-basis:100%;
+ order:-2;
+ font-size:clamp(22px,2.5vw,30px);
+ min-height:68px;
+}
+@media(max-height:760px){
+ #startScreen .titleLogo{max-height:35vh;width:min(760px,86%)}
+ #startScreen .titleLead{font-size:14px;margin-bottom:7px}
+ #startScreen .card{padding-top:10px;padding-bottom:10px}
+ #startScreen .mainStartButton{min-height:58px}
+}
+
+#startScreen{overflow:auto;padding:clamp(8px,1.5vh,18px) 12px}
+#startScreen .startLayout{width:min(1180px,97vw);min-height:min(94vh,900px);margin:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(2px,.7vh,8px)}
+#startScreen .titleLogo{display:block;width:min(1080px,94vw);height:auto;max-height:58vh;object-fit:contain;margin:0 auto;filter:drop-shadow(0 10px 14px rgba(0,0,0,.30));flex:0 1 auto}
+#startScreen .startControls{width:min(820px,92vw);padding:clamp(12px,1.8vh,20px) clamp(16px,2.4vw,28px);margin:0 auto;background:rgba(255,255,255,.94);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 10px 34px rgba(0,0,0,.24);border:2px solid rgba(255,255,255,.72);border-radius:22px;flex:0 0 auto}
+#startScreen .titleVersion{margin:0 0 2px;font-size:10px;opacity:.58}
+#startScreen .titleLead{margin:0 auto 9px;font-size:clamp(13px,1.45vw,17px);line-height:1.4}
+#startScreen .row{margin-top:5px;gap:8px}
+#startScreen .mainStartButton{min-height:62px}
+#startScreen .startControls>p.sub{margin:5px 0 0;font-size:11px}
+@media(max-height:760px){#startScreen .startLayout{justify-content:flex-start;min-height:auto}#startScreen .titleLogo{width:min(820px,88vw);max-height:43vh}#startScreen .startControls{padding:9px 16px}#startScreen .titleLead{font-size:13px;margin-bottom:5px}#startScreen .mainStartButton{min-height:54px}#startScreen .row{gap:6px}}
+@media(max-width:680px){#startScreen .titleLogo{width:98vw}#startScreen .startControls{width:94vw;border-radius:17px}}
+
+/* ===========================
+   V74 FINAL ART-DIRECTION PASS
+   =========================== */
+
+/* Never allow transparent/black text caused by clipped text gradients. */
+body,button,h1,h2,h3,p,.sub,.label,.value,#message,#bossInstruction,
+#resultScore,#captureSummary,#resultText,.captureName,.captureCount,
+.speedTitle,.speedDesc,.messageSub,.enterHint{
+ -webkit-text-fill-color:currentColor !important;
+ background-clip:border-box !important;
+ -webkit-background-clip:border-box !important;
+}
+
+/* Remove V73's literal foliage and decorative star glyphs. */
+.card::before,.card::after,.hudbox::before,.hudbox::after,button::before{content:none!important;display:none!important}
+
+/* Global typography: warm white face, white top highlight, dark-green edge, soft glow. */
+h1,h2,h3,.label,.value,#message,#bossInstruction,#resultScore,
+#captureSummary,#resultText,.captureName,.captureCount,.speedTitle{
+ color:#fff3c7!important;
+ -webkit-text-stroke:1px rgba(20,55,35,.92);
+ text-shadow:
+   0 -1px 0 #ffffff,
+   0 2px 0 #173b28,
+   0 0 7px rgba(255,246,203,.38),
+   0 5px 12px rgba(0,0,0,.30)!important;
+}
+p,.sub,.speedDesc{color:#f8f0d7!important;text-shadow:0 2px 0 rgba(15,45,28,.82),0 3px 8px rgba(0,0,0,.28)!important}
+
+/* Main cards: polished game panel, not a literal wooden/plant prop. */
+.card{
+ overflow:hidden!important;
+ background:
+   linear-gradient(180deg,rgba(255,255,255,.08),transparent 18%),
+   linear-gradient(145deg,rgba(17,66,45,.96),rgba(5,30,20,.97))!important;
+ border:2px solid rgba(244,213,126,.88)!important;
+ box-shadow:
+   inset 0 0 0 2px rgba(255,255,255,.055),
+   inset 0 1px 0 rgba(255,255,255,.18),
+   0 18px 55px rgba(0,0,0,.42)!important;
+}
+
+/* Title screen: logo + four short actions only. */
+#startScreen .startLayout{gap:10px!important}
+#startScreen .startControls{
+ width:min(690px,88vw)!important;
+ padding:14px 18px 16px!important;
+ background:linear-gradient(180deg,rgba(8,37,25,.88),rgba(4,24,16,.94))!important;
+ border:1px solid rgba(246,219,141,.58)!important;
+ border-radius:20px!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 38px rgba(0,0,0,.34)!important;
+ backdrop-filter:blur(8px);
+}
+#startScreen .titleVersion,#startScreen .titleLead,#startScreen .startControls>p.sub{display:none!important}
+#startScreen .row{display:grid!important;grid-template-columns:repeat(3,1fr);gap:9px!important;margin:0!important}
+#startScreen .mainStartButton{
+ grid-column:1/-1!important;order:-2!important;
+ width:100%!important;min-height:70px!important;margin:0 0 3px!important;
+ font-size:clamp(23px,2.6vw,31px)!important;
+}
+#startScreen .row button:not(.mainStartButton){margin:0!important;min-height:46px!important;font-size:14px!important;padding:10px 12px!important}
+
+/* Buttons: clean fantasy-mobile treatment. No fake vines, no icon clutter. */
+button{
+ color:#fff7d8!important;
+ border:1px solid rgba(255,229,151,.72)!important;
+ border-radius:14px!important;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.12),transparent 24%),
+  linear-gradient(180deg,#3f7350 0%,#27543a 55%,#163724 100%)!important;
+ box-shadow:
+  inset 0 1px 0 rgba(255,255,255,.24),
+  inset 0 -2px 0 rgba(0,0,0,.18),
+  0 4px 0 #0b2517,
+  0 8px 16px rgba(0,0,0,.22)!important;
+ -webkit-text-stroke:.55px rgba(20,48,31,.86)!important;
+ text-shadow:0 -1px 0 #fff,0 2px 0 #173824,0 0 6px rgba(255,239,183,.25)!important;
+}
+button:hover{filter:brightness(1.08)!important}
+button.secondary{
+ color:#fff7d8!important;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.09),transparent 24%),
+  linear-gradient(180deg,#315a42 0%,#214432 58%,#132e21 100%)!important;
+}
+#startCamera.mainStartButton,#again.resultAgain{
+ border-color:#ffe29a!important;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.18),transparent 23%),
+  linear-gradient(180deg,#5f9360 0%,#397044 54%,#245232 100%)!important;
+ box-shadow:
+  inset 0 2px 0 rgba(255,255,255,.28),
+  inset 0 -3px 0 rgba(0,0,0,.16),
+  0 6px 0 #12341f,
+  0 12px 24px rgba(0,0,0,.27)!important;
+}
+
+/* HUD: only SCORE and TIME. Clean plaques with no plant decoration. */
+#hud{inset:16px 20px auto 20px!important}
+.hudbox{
+ min-width:190px!important;min-height:82px!important;padding:9px 20px 11px!important;
+ transform:none!important;border-radius:16px!important;
+ background:
+  linear-gradient(180deg,rgba(255,255,255,.09),transparent 24%),
+  linear-gradient(180deg,rgba(12,55,37,.93),rgba(5,30,20,.94))!important;
+ border:2px solid rgba(239,214,142,.78)!important;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.14),0 6px 18px rgba(0,0,0,.25)!important;
+}
+.hudbox.timeSign{text-align:right!important;transform:none!important}
+.hudbox .label{font-size:14px!important;margin-bottom:3px!important;color:#e9d9a8!important}
+.hudbox .value{font-size:45px!important;color:#fff5ce!important}
+.scoreValue #score{font-size:50px!important}
+.ptUnit{font-size:.38em!important;margin-left:.14em!important;vertical-align:.20em!important}
+#koBox{display:none!important}
+
+/* Central messages: bright, high contrast. Absolutely no brown face color. */
+#message{
+ color:#fff8d9!important;
+ -webkit-text-stroke:2px rgba(22,65,41,.94)!important;
+ text-shadow:0 -2px 0 #fff,0 3px 0 #17432a,0 0 13px rgba(255,238,145,.72),0 8px 18px rgba(0,0,0,.32)!important;
+ filter:none!important;
+}
+#bossInstruction{
+ color:#fff7c7!important;
+ -webkit-text-stroke:2px rgba(30,75,45,.96)!important;
+ text-shadow:0 -2px 0 #fff,0 3px 0 #1b5131,0 0 12px rgba(255,229,95,.75),0 0 26px rgba(255,198,52,.34)!important;
+ filter:none!important;
+ font-size:clamp(28px,4vw,52px)!important;
+}
+
+/* Result screen hierarchy stays clean. */
+#resultScore{color:#fff4c8!important;filter:none!important}
+#resultScore .resultPtUnit{font-size:.34em!important}
+#captureSummary{font-size:16px!important}
+.captureCard{
+ background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025))!important;
+ border:1px solid rgba(236,216,158,.28)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 5px 12px rgba(0,0,0,.16)!important;
+}
+
+/* Settings text remains readable without decorative overload. */
+#settingsScreen .card{max-width:760px}
+.speedBtn{background:linear-gradient(180deg,#315b43,#173625)!important}
+.speedBtn.selected{border-color:#ffe18a!important;background:linear-gradient(180deg,#52764a,#2e5538)!important}
+
+/* Camera/setup screens can be denser because they are configuration, not play. */
+#cameraSetupCard,#calibrationPanel{color:#fff7db}
+#cameraSetupCard p,#calibrationPanel p{color:#f3ead0!important}
+
+@media(max-width:720px){
+ #startScreen .row{grid-template-columns:1fr 1fr}
+ #startScreen .mainStartButton{grid-column:1/-1!important}
+ #startCalibration{grid-column:1/-1}
+ .hudbox{min-width:140px!important;min-height:70px!important;padding:8px 13px 9px!important}
+ .hudbox .label{font-size:11px!important}.hudbox .value{font-size:34px!important}.scoreValue #score{font-size:39px!important}
+}
+
+
+/* V75: correct gradient-text mask.
+   V74 changed background-clip to border-box but left the gradient background alive,
+   which is why a cream rectangle appeared behind text. */
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+ #message,#bossInstruction,#resultScore,#captureSummary,#resultText,.captureName,.captureCount{
+  color:#fff6d4!important;
+  background-image:linear-gradient(180deg,#ffffff 0%,#fffdf1 34%,#fff1bf 70%,#e9c873 100%)!important;
+  background-color:transparent!important;
+  background-repeat:no-repeat!important;
+  background-origin:content-box!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+ }
+}
+#message,#bossInstruction,#resultScore,#captureSummary,#resultText,.captureName,.captureCount{
+ border:0!important;
+}
+
+
+/* REVERTH credit — user supplied logo, white treatment for the dark title background. */
+.reverthCredit{
+ position:fixed;right:18px;bottom:14px;z-index:28;
+ width:clamp(92px,9vw,138px);height:auto;
+ filter:brightness(0) invert(1) drop-shadow(0 2px 3px rgba(0,0,0,.68));
+ opacity:.72;pointer-events:none;user-select:none;
+}
+@media(max-width:680px){
+ .reverthCredit{right:10px;bottom:9px;width:90px;opacity:.66}
+}
+
+
+/* V76: boss instruction must be hidden until JS explicitly shows it. */
+#bossInstruction{display:none}
+
+
+/* V76 gameplay eye-line: score is the primary metric, centered at the bottom. */
+#hud{position:absolute!important;inset:0!important;display:block!important;pointer-events:none!important}
+#hud .scoreSign{
+ position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:18px!important;
+ transform:translateX(-50%)!important;text-align:center!important;
+ min-width:210px!important;min-height:76px!important;padding:8px 24px 10px!important;
+ z-index:7!important;
+}
+#hud .timeSign{
+ position:fixed!important;right:20px!important;left:auto!important;top:16px!important;bottom:auto!important;
+ transform:none!important;text-align:right!important;
+ min-width:150px!important;min-height:70px!important;padding:8px 18px 9px!important;
+ z-index:7!important;
+}
+#hud .scoreSign .label{font-size:11px!important;opacity:.82}
+#hud .scoreSign .scoreValue #score{font-size:52px!important}
+#hud .scoreSign .ptUnit{font-size:.34em!important}
+@media(max-width:720px){
+ #hud .scoreSign{bottom:10px!important;min-width:170px!important;min-height:66px!important;padding:7px 18px 8px!important}
+ #hud .scoreSign .scoreValue #score{font-size:43px!important}
+ #hud .timeSign{right:10px!important;top:10px!important;min-width:120px!important;min-height:60px!important;padding:7px 12px!important}
+}
+
+
+/* V76 small-text audit: no dark/black UI copy on dark panels. */
+#detectStatus,#speedBadge,#cameraSetupCard,#cameraSetupCard p,#cameraSetupCard b,
+#cameraSetupCard .setupMeasure,#cameraSetupActions,#calibrationPanel,#calibrationPanel p,
+#calibrationPanel strong,#calibrationHelp,#calibrationState,#settingsScreen,
+#settingsScreen p,#settingsScreen .sub,.speedBtn,.speedBtn .speedTitle,.speedBtn .speedDesc,
+.audioSettings,.volumeRow label,.volumeRow span,.legendItem,
+.captureName,.captureCount,#captureSummary,.messageSub,.enterHint{
+ color:#fff5d8!important;
+ -webkit-text-fill-color:#fff5d8!important;
+ text-shadow:0 2px 0 rgba(13,39,25,.82),0 3px 7px rgba(0,0,0,.30)!important;
+}
+#cameraSetupCard .setupImportant,#calibrationState,.captureCount,#captureSummary{
+ color:#ffe7a0!important;-webkit-text-fill-color:#ffe7a0!important;
+}
+#detectStatus,#speedBadge{
+ border-color:rgba(255,255,255,.24)!important;
+ background:rgba(4,22,14,.82)!important;
+}
+input,select,textarea{color:#fff5d8;background:#163526;border-color:#6f8f72}
+
+
+/* ==========================================================
+   V77 TYPOGRAPHY RULE
+   Supporting / explanatory copy must prioritize readability.
+   Plain white + only a subtle dark shadow. No gradient/stroke/glow.
+   ========================================================== */
+#resultText,
+#captureSummary,
+.captureName,
+.captureCount,
+.sub,
+.speedDesc,
+#settingsScreen p,
+.volumeRow label,
+.volumeRow label span,
+#cameraSetupCard p,
+#cameraSetupCard b,
+#cameraSetupCard .setupMeasure,
+#calibrationPanel p,
+#calibrationPanel strong,
+#calibrationHelp,
+#calibrationState,
+#detectStatus,
+#speedBadge,
+.messageSub,
+.enterHint{
+ color:#ffffff!important;
+ -webkit-text-fill-color:#ffffff!important;
+ background:none!important;
+ background-image:none!important;
+ -webkit-background-clip:border-box!important;
+ background-clip:border-box!important;
+ -webkit-text-stroke:0!important;
+ filter:none!important;
+ text-shadow:0 1px 3px rgba(0,0,0,.72)!important;
+}
+
+/* Result explanatory copy: slightly larger line-height, but still plain. */
+#resultText{
+ font-size:15px!important;
+ line-height:1.7!important;
+ font-weight:700!important;
+ letter-spacing:.015em!important;
+ margin:8px auto 10px!important;
+}
+
+/* Result count is secondary information. */
+#captureSummary{
+ font-size:13px!important;
+ line-height:1.45!important;
+ font-weight:700!important;
+ opacity:.92!important;
+}
+
+/* Small English section labels can be quieter without losing legibility. */
+.sub{
+ font-weight:700!important;
+ opacity:.82!important;
+}
+
+/* Setting descriptions: deliberately undecorated. */
+.speedDesc,
+#settingsScreen p,
+.volumeRow label,
+#cameraSetupCard p,
+#calibrationPanel p,
+#calibrationHelp{
+ font-weight:600!important;
+}
+
+/* HUD labels are functional, not explanatory copy:
+   keep them bright but remove unnecessary glow/stroke. */
+#hud .label{
+ color:#ffffff!important;
+ -webkit-text-fill-color:#ffffff!important;
+ background:none!important;
+ -webkit-background-clip:border-box!important;
+ background-clip:border-box!important;
+ -webkit-text-stroke:0!important;
+ filter:none!important;
+ text-shadow:0 1px 3px rgba(0,0,0,.72)!important;
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="game"></canvas>
+<div id="bossInstruction">ここの主が現れた！<br>ボールを投げ続けろ！</div>
+<video id="camera" autoplay playsinline muted></video>
+<canvas id="cameraCanvas"></canvas>
+<div id="detectStatus">カメラ待機中</div>
+<div id="detectDot"></div>
+
+<div id="cameraSetupOverlay">
+ <div id="cameraSetupCard">
+  <h2>① カメラ画角にTV範囲を登録</h2>
+  <p>先に<b>「カメラ映像の中で、実際のゲーム画面がどこに映っているか」</b>を登録します。TVを画角いっぱいにする必要はありません。</p>
+  <div class="setupMeasure"><b>設置の順番</b><br>1. 投球ラインを画面から約0.9〜1.1m確保<br>2. iPhoneを投球者より後方・高めに固定<br>3. 右のカメラ映像でTV全体が見える位置にする<br>4. カメラ映像上のTV四隅をクリック</div>
+  <p id="screenFrameHelp" class="setupImportant">カメラ映像上で ①左上 → ②右上 → ③右下 → ④左下 の順にTV画面の角をクリックしてください。</p>
+  <p>この4点から「カメラ画角の中のゲーム画面範囲」を先に計算します。その後、5cm薄ピンク球で精密キャリブレーションします。</p>
+  <div id="cameraSetupActions"><button id="resetScreenFrame" class="secondary">TV範囲をやり直す</button><button id="cameraSetupContinue" disabled>TV範囲OK → 5cm球キャリブレーション</button><button id="cameraSetupCancel" class="secondary">中止</button></div>
+ </div>
+</div>
+<div id="screenFrameOverlay">
+ <svg id="screenFrameSvg"><polyline id="screenFramePolygon" points=""></polyline></svg>
+ <div id="screenFramePoints"></div>
+</div>
+<div id="screenFrameHitArea" aria-label="TV画面四隅登録エリア"></div>
+
+<div id="calibrationOverlay">
+ <div id="calibrationMarker"></div>
+ <div id="calibrationPanel">
+  <strong>4点キャリブレーション</strong>
+  <p id="calibrationHelp">薄ピンクのボールを十字の中心に重ねてください。</p>
+  <button id="captureCalibration">この位置を登録（Space）</button>
+  <button id="cancelCalibration" class="secondary">中止</button>
+ </div>
+</div>
+
+
+<div id="hud">
+ <div class="hudbox scoreSign"><div class="label">SCORE</div><div class="value scoreValue"><span id="score">0</span><span class="ptUnit">pt</span></div></div>
+ <div class="hudbox timeSign"><div class="label">TIME</div><div class="value"><span id="time">50</span></div></div>
+</div>
+<div id="koBox" class="hudbox" aria-hidden="true"><div class="label">つかまえた！</div><div class="value" id="ko">0</div></div>
+<div id="speedBadge">スピード：通常</div>
+<div id="center"><div id="message"></div></div>
+
+<div id="startScreen" class="screen">
+ <div class="startLayout">
+  <img class="titleLogo" src="assets/ui/tochikore_hunter_title_logo.webp" alt="トチコレ！ハンター！">
+  <div class="card startControls">
+   <div class="sub titleVersion">PROTOTYPE v77</div>
+  <div class="row">
+   <button id="startTest">テスト</button>
+   <button id="startCamera" class="mainStartButton secondary">カメラモード</button>
+   <button id="openGameSettings" class="secondary">設定</button>
+   <button id="startCalibration" class="secondary">カメラ設定</button>
+  </div>
+  <p id="calibrationState" class="sub">V69用キャリブレーション未実施</p>
+  </div>
+ </div>
+ <img class="reverthCredit" src="assets/ui/reverth_credit.png" alt="REVERTH CREATIVE">
+</div>
+
+
+<div id="settingsScreen" class="hidden">
+ <div class="card">
+  <div class="sub">GAME SETTINGS</div>
+  <h1 style="font-size:clamp(32px,5vw,54px)">ゲーム設定</h1>
+  <p>遊ぶ人に合わせて、キャラクターの動く速さを選べます。<br>制限時間・得点・ボス出現タイミングは変わりません。</p>
+  <div class="speedOptions">
+   <button id="speedNormal" class="speedBtn">
+    <span class="speedTitle">通常モード</span>
+    <span class="speedDesc">現在のゲームスピード。<br>子ども〜大人向けの標準設定。</span>
+   </button>
+   <button id="speedSlow" class="speedBtn">
+    <span class="speedTitle">ゆっくりモード</span>
+    <span class="speedDesc">キャラクターの移動を約35%ゆっくりに。<br>ご年配の方や初めて遊ぶ方にもおすすめ。</span>
+   </button>
+  </div>
+  <div class="audioSettings">
+   <div class="volumeRow">
+    <label for="bgmVolume">BGM音量 <span id="bgmVolumeValue">90%</span></label>
+    <input id="bgmVolume" type="range" min="0" max="100" step="1" value="90">
+   </div>
+   <div class="volumeRow">
+    <label for="seVolume">SE音量 <span id="seVolumeValue">100%</span></label>
+    <input id="seVolume" type="range" min="0" max="100" step="1" value="100">
+   </div>
+   <button id="recommendedVolume" class="secondary audioPresetBtn">音量を推奨値に戻す</button>
+  </div>
+  <div class="row">
+   <button id="closeGameSettings">決定して戻る</button>
+  </div>
+ </div>
+</div>
+
+<div id="resultScreen" class="screen hidden">
+ <div class="card" style="text-align:center">
+  <div class="sub">CAPTURE RESULT</div>
+  <h1 id="resultScore"><span id="resultScoreNum">0</span><span class="ptUnit resultPtUnit">pt</span></h1>
+  <div id="captureSummary">つかまえたキャラ 0体</div>
+  <p id="resultText"></p>
+  <div id="capturedGrid"></div>
+  <div class="resultActions">
+   <button id="again" class="resultAgain">もう一度 <span class="enterHint">ENTER</span></button>
+   <button id="back" class="secondary resultBack">タイトルへ</button>
+  </div>
+ </div>
+</div>
+
+<script>
+const game=document.getElementById('game'),ctx=game.getContext('2d');
+const video=document.getElementById('camera'),camCanvas=document.getElementById('cameraCanvas'),camCtx=camCanvas.getContext('2d',{willReadFrequently:true});
+const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),koEl=document.getElementById('ko'),messageEl=document.getElementById('message'),bossInstruction=document.getElementById('bossInstruction');
+const startScreen=document.getElementById('startScreen'),resultScreen=document.getElementById('resultScreen'),detectStatus=document.getElementById('detectStatus'),detectDot=document.getElementById('detectDot');
+const settingsScreen=document.getElementById('settingsScreen'),speedBadge=document.getElementById('speedBadge');
+let W=innerWidth,H=innerHeight,score=0,timeLeft=50,kos=0,running=false,mode='test',timer=null,targets=[],effects=[],lastHit=0,gameStartedAt=0;
+let bonusGiven=false,bossMode=false,cameraStream=null,lastDetect=0,lastCenter=null,armed=false,missingFrames=0;
+let captured=[];
+let ballFlying=false,flightLastPoint=null,flightStartedAt=0,flightMissing=0;
+
+const cameraSetupOverlay=document.getElementById('cameraSetupOverlay');
+const calibrationOverlay=document.getElementById('calibrationOverlay');
+const calibrationMarker=document.getElementById('calibrationMarker');
+const calibrationHelp=document.getElementById('calibrationHelp');
+const calibrationState=document.getElementById('calibrationState');
+const screenFrameOverlay=document.getElementById('screenFrameOverlay'),screenFrameHitArea=document.getElementById('screenFrameHitArea'),screenFramePointsEl=document.getElementById('screenFramePoints'),screenFramePolygon=document.getElementById('screenFramePolygon'),screenFrameHelp=document.getElementById('screenFrameHelp'),cameraSetupContinue=document.getElementById('cameraSetupContinue');
+let cameraSetupActive=false,calibrationActive=false,calibrationStep=0,calibrationSamples=[],calibrationBallSizes=[],calibrationLiveSamples=[],latestCameraPoint=null,latestCameraBlob=null,homography=null,screenBallDiameterPx=null,screenBallDiameters=null;
+let screenFrameCameraPoints=[],screenFrameClientPoints=[],homographyBeforeSetup=null,screenFrameHomography=null,calibrationCompletedThisRun=false;
+const CALIB_MARGIN_X=.08,CALIB_MARGIN_Y=.10;
+const CAM_W=480,CAM_H=270;
+let legacyCalibrationDetected=false;
+try{
+ legacyCalibrationDetected=!!localStorage.getItem('ennichiCalibrationV62');
+}catch(e){}
+try{
+ const saved=JSON.parse(localStorage.getItem('ennichiCalibrationV69')||'null');
+ if(saved&&Array.isArray(saved.H)&&saved.H.length===9){
+  homography=saved.H;
+  if(Number.isFinite(saved.ballDiameterPx))screenBallDiameterPx=saved.ballDiameterPx;
+  if(Array.isArray(saved.ballDiameters)&&saved.ballDiameters.length===4)screenBallDiameters=saved.ballDiameters.map(Number);
+  if(Array.isArray(saved.screenFrame)&&saved.screenFrame.length===4)screenFrameCameraPoints=saved.screenFrame.map(p=>({x:Number(p.x),y:Number(p.y)}));
+ }
+}catch(e){}
+function updateCalibrationState(){
+ calibrationState.textContent=homography
+  ? `✓ V69キャリブレーション保存済み${screenBallDiameterPx?' / 5cm球サイズ登録済み':''}（カメラを動かしたら再登録）`
+  :(legacyCalibrationDetected
+    ? 'V69では画角範囲登録から再キャリブレーションしてください'
+    : 'V69用キャリブレーション未実施（iPhone位置を固定して登録）');
+}
+function calibrationTargets(){
+ return [
+  {name:'① 左上',x:W*CALIB_MARGIN_X,y:H*CALIB_MARGIN_Y},
+  {name:'② 右上',x:W*(1-CALIB_MARGIN_X),y:H*CALIB_MARGIN_Y},
+  {name:'③ 右下',x:W*(1-CALIB_MARGIN_X),y:H*(1-CALIB_MARGIN_Y)},
+  {name:'④ 左下',x:W*CALIB_MARGIN_X,y:H*(1-CALIB_MARGIN_Y)}
+ ];
+}
+function calibrationTargetsNormalized(){
+ return [
+  {x:CALIB_MARGIN_X,y:CALIB_MARGIN_Y},{x:1-CALIB_MARGIN_X,y:CALIB_MARGIN_Y},
+  {x:1-CALIB_MARGIN_X,y:1-CALIB_MARGIN_Y},{x:CALIB_MARGIN_X,y:1-CALIB_MARGIN_Y}
+ ];
+}
+function positionCalibrationMarker(){
+ const t=calibrationTargets()[calibrationStep]; if(!t)return;
+ calibrationMarker.style.left=t.x+'px';calibrationMarker.style.top=t.y+'px';
+ calibrationHelp.textContent=`${t.name}：実際に使う約5cmの薄ピンク球を画面面に近づけ、十字の中心に重ねて静止させてから登録してください。`;
+}
+function solveLinear(A,b){
+ const n=b.length,M=A.map((r,i)=>r.slice().concat(b[i]));
+ for(let c=0;c<n;c++){
+  let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+  if(Math.abs(M[p][c])<1e-9)return null;[M[c],M[p]]=[M[p],M[c]];
+  let d=M[c][c];for(let k=c;k<=n;k++)M[c][k]/=d;
+  for(let r=0;r<n;r++){if(r===c)continue;let f=M[r][c];for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k]}
+ }
+ return M.map(r=>r[n]);
+}
+function computeHomography(srcPts,dstPts){
+ const A=[],b=[];
+ for(let i=0;i<4;i++){
+  const {x,y}=srcPts[i],X=dstPts[i].x,Y=dstPts[i].y;
+  A.push([x,y,1,0,0,0,-X*x,-X*y]);b.push(X);
+  A.push([0,0,0,x,y,1,-Y*x,-Y*y]);b.push(Y);
+ }
+ const h=solveLinear(A,b);return h?[h[0],h[1],h[2],h[3],h[4],h[5],h[6],h[7],1]:null;
+}
+function cameraToScreen(cx,cy){
+ if(homography){
+  const h=homography,d=h[6]*cx+h[7]*cy+h[8];
+  if(Math.abs(d)>1e-6)return{x:((h[0]*cx+h[1]*cy+h[2])/d)*W,y:((h[3]*cx+h[4]*cy+h[5])/d)*H};
+ }
+ return{x:cx/CAM_W*W,y:cy/CAM_H*H};
+}
+function clearScreenFrameVisuals(){
+ screenFrameClientPoints=[];screenFramePointsEl.innerHTML='';screenFramePolygon.setAttribute('points','');
+}
+function resetScreenFrameRegistration(){
+ screenFrameCameraPoints=[];screenFrameHomography=null;clearScreenFrameVisuals();
+ cameraSetupContinue.disabled=true;
+ screenFrameHelp.textContent='カメラ映像上で ①左上 → ②右上 → ③右下 → ④左下 の順にTV画面の角をクリックしてください。';
+}
+function renderScreenFrameVisuals(){
+ screenFramePointsEl.innerHTML='';
+ for(let i=0;i<screenFrameClientPoints.length;i++){
+  const p=screenFrameClientPoints[i],d=document.createElement('div');
+  d.className='screenFramePoint';d.style.left=p.x+'px';d.style.top=p.y+'px';d.textContent=String(i+1);
+  d.style.display='grid';d.style.placeItems='center';d.style.fontSize='11px';d.style.fontWeight='1000';d.style.color='#111';
+  screenFramePointsEl.appendChild(d);
+ }
+ const pts=screenFrameClientPoints.map(p=>`${p.x},${p.y}`);
+ if(pts.length===4)pts.push(`${screenFrameClientPoints[0].x},${screenFrameClientPoints[0].y}`);
+ screenFramePolygon.setAttribute('points',pts.join(' '));
+}
+function syncScreenFrameHitArea(){
+ if(!cameraSetupActive){screenFrameHitArea.style.display='none';return;}
+ const r=video.getBoundingClientRect();
+ if(r.width<20||r.height<20)return;
+ screenFrameHitArea.style.display='block';
+ screenFrameHitArea.style.left=r.left+'px';
+ screenFrameHitArea.style.top=r.top+'px';
+ screenFrameHitArea.style.width=r.width+'px';
+ screenFrameHitArea.style.height=r.height+'px';
+}
+function cameraPreviewClickToCanvas(e){
+ const r=video.getBoundingClientRect();
+ const vw=video.videoWidth||1280,vh=video.videoHeight||720;
+ const scale=Math.min(r.width/vw,r.height/vh);
+ const drawW=vw*scale,drawH=vh*scale;
+ const left=r.left+(r.width-drawW)/2,top=r.top+(r.height-drawH)/2;
+ if(e.clientX<left||e.clientX>left+drawW||e.clientY<top||e.clientY>top+drawH)return null;
+ return{
+  camera:{x:(e.clientX-left)/drawW*CAM_W,y:(e.clientY-top)/drawH*CAM_H},
+  client:{x:e.clientX,y:e.clientY}
+ };
+}
+function polygonArea(pts){
+ let a=0;for(let i=0;i<pts.length;i++){const p=pts[i],q=pts[(i+1)%pts.length];a+=p.x*q.y-q.x*p.y}return Math.abs(a)/2;
+}
+function registerScreenFramePoint(e){
+ if(!cameraSetupActive||screenFrameCameraPoints.length>=4)return;
+ const p=cameraPreviewClickToCanvas(e);if(!p)return;
+ screenFrameCameraPoints.push(p.camera);screenFrameClientPoints.push(p.client);renderScreenFrameVisuals();
+ detectStatus.textContent=`画角登録 ${screenFrameCameraPoints.length}/4：${screenFrameCameraPoints.length===4?'TV範囲を計算中':'次の角をクリック'}`;
+ const labels=['②右上','③右下','④左下'];
+ if(screenFrameCameraPoints.length<4){
+  screenFrameHelp.textContent=`${screenFrameCameraPoints.length}/4 登録済み。次は ${labels[screenFrameCameraPoints.length-1]} をクリックしてください。`;
+  return;
+ }
+ const area=polygonArea(screenFrameCameraPoints);
+ if(area<CAM_W*CAM_H*.010){
+  screenFrameHelp.textContent='TV範囲が極端に小さいか、4点の順序が不正です。「やり直す」から再登録してください。';
+  return;
+ }
+ const fullScreen=[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
+ screenFrameHomography=computeHomography(screenFrameCameraPoints,fullScreen);
+ if(!screenFrameHomography){
+  screenFrameHelp.textContent='TV範囲の計算に失敗しました。「やり直す」から再登録してください。';return;
+ }
+ // ここで初めて「カメラ画角のどこがゲーム画面か」を座標系に反映。
+ homography=screenFrameHomography.slice();
+ cameraSetupContinue.disabled=false;
+ screenFrameHelp.textContent='✓ カメラ画角内のTV範囲を登録しました。黄色い枠がTV画面に沿っていれば次へ進んでください。';
+}
+screenFrameHitArea.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();registerScreenFramePoint(e)});
+window.addEventListener('resize',()=>{if(cameraSetupActive)requestAnimationFrame(syncScreenFrameHitArea)});
+
+async function beginCalibration(){
+ audioInit();cameraSetupActive=true;calibrationActive=false;calibrationCompletedThisRun=false;running=false;mode='camera';
+ homographyBeforeSetup=homography?homography.slice():null;
+ resetScreenFrameRegistration();
+ startScreen.classList.add('hidden');resultScreen.classList.add('hidden');
+ cameraSetupOverlay.style.display='block';screenFrameOverlay.style.display='block';video.style.display='block';video.classList.add('setupPreview');detectStatus.style.display='block';
+ detectStatus.textContent='画角登録：右のカメラ映像上でTV四隅を 左上→右上→右下→左下 の順にクリック';
+ requestAnimationFrame(syncScreenFrameHitArea);
+ await startCamera();
+ requestAnimationFrame(syncScreenFrameHitArea);
+ setTimeout(syncScreenFrameHitArea,120);
+ if(!cameraLoopActive){cameraLoopActive=true;requestAnimationFrame(cameraLoop);}
+}
+function startFourPointCalibration(){
+ if(!screenFrameHomography||screenFrameCameraPoints.length!==4)return;
+ cameraSetupActive=false;cameraSetupOverlay.style.display='none';screenFrameOverlay.style.display='none';screenFrameHitArea.style.display='none';video.classList.remove('setupPreview');
+ // Stage 1のTV範囲マッピングを使った状態で、Stage 2の5cm球精密キャリブレーションへ。
+ homography=screenFrameHomography.slice();
+ calibrationActive=true;calibrationStep=0;calibrationSamples=[];calibrationBallSizes=[];calibrationLiveSamples=[];latestCameraPoint=null;latestCameraBlob=null;
+ calibrationOverlay.style.display='block';video.style.display='block';detectStatus.style.display='block';
+ detectStatus.textContent='画角補正済み：5cm薄ピンク球で精密キャリブレーション';positionCalibrationMarker();
+}
+function median(values){const a=values.filter(Number.isFinite).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null}
+function captureCalibrationPoint(){
+ if(!calibrationActive)return;
+ // 単一フレームではなく直近の安定サンプルを中央値化。手ブレ/1フレーム誤差を抑える。
+ const recent=calibrationLiveSamples.slice(-12);
+ if(recent.length<4){calibrationHelp.textContent='ボールを十字に重ねて0.2〜0.4秒静止させてください（安定サンプル不足）。';return;}
+ const xs=recent.map(v=>v.x),ys=recent.map(v=>v.y),ds=recent.map(v=>v.diameter);
+ const mx=median(xs),my=median(ys),md=median(ds);
+ const spread=Math.max(...recent.map(v=>Math.hypot(v.x-mx,v.y-my)));
+ if(spread>16){calibrationHelp.textContent='ボールが動いています。十字の中心で少し静止してから登録してください。';return;}
+ calibrationSamples.push({x:mx,y:my});calibrationBallSizes.push(md);calibrationLiveSamples=[];calibrationStep++;
+ if(calibrationStep<4){positionCalibrationMarker();return;}
+ const Hnew=computeHomography(calibrationSamples,calibrationTargetsNormalized());
+ if(!Hnew){calibrationHelp.textContent='計算に失敗しました。もう一度登録してください。';calibrationStep=0;calibrationSamples=[];calibrationBallSizes=[];calibrationLiveSamples=[];positionCalibrationMarker();return;}
+ const mid=median(calibrationBallSizes);
+ homography=Hnew;screenBallDiameterPx=mid;screenBallDiameters=calibrationBallSizes.slice(0,4);legacyCalibrationDetected=false;calibrationCompletedThisRun=true;
+ localStorage.setItem('ennichiCalibrationV69',JSON.stringify({H:homography,ballDiameterPx:screenBallDiameterPx,ballDiameters:screenBallDiameters,screenFrame:screenFrameCameraPoints,at:Date.now(),camera:[CAM_W,CAM_H],setup:'camera-frame-first-then-ball'}));
+ calibrationHelp.textContent='登録完了。画面全体の座標と5cm球サイズを記録しました。カメラ位置を動かさないでください。';
+ flash('キャリブレーションOK！','✓ 設置確認＋4点＋5cm球サイズ登録完了');setTimeout(finishCalibration,950);
+}
+function finishCalibration(){
+ if(!calibrationCompletedThisRun&&homographyBeforeSetup)homography=homographyBeforeSetup.slice();
+ cameraSetupActive=false;calibrationActive=false;cameraSetupOverlay.style.display='none';screenFrameOverlay.style.display='none';screenFrameHitArea.style.display='none';calibrationOverlay.style.display='none';video.classList.remove('setupPreview');video.style.display='none';detectStatus.style.display='none';detectDot.style.display='none';
+ clearScreenFrameVisuals();startScreen.classList.remove('hidden');updateCalibrationState();
+}
+
+let cameraLoopActive=false;
+let audioCtx=null,musicTimer=null,musicStep=0,musicMode='title',musicNextTime=0;
+let bgmGain=null,seGain=null,masterGain=null,masterComp=null;
+let bgmVolume=parseFloat(localStorage.getItem('tochicolleBgmVolume')??'0.90');
+let seVolume=parseFloat(localStorage.getItem('tochicolleSeVolume')??'1.00');
+let gameSpeedMode=localStorage.getItem('ennichiGameSpeed')||'normal';
+const GAME_SPEED={normal:1.0,slow:0.65};
+function speedMultiplier(){return GAME_SPEED[gameSpeedMode]||1.0}
+function updateSpeedUI(){
+ const normal=document.getElementById('speedNormal');
+ const slow=document.getElementById('speedSlow');
+ if(!normal||!slow)return;
+ normal.classList.toggle('selected',gameSpeedMode==='normal');
+ slow.classList.toggle('selected',gameSpeedMode==='slow');
+ speedBadge.textContent='スピード：'+(gameSpeedMode==='slow'?'ゆっくり':'通常');
+}
+function setGameSpeed(mode){
+ gameSpeedMode=mode;
+ localStorage.setItem('ennichiGameSpeed',mode);
+ updateSpeedUI();
+}
+
+let grassCache=[],grassCacheW=0,grassCacheH=0;
+function resize(){const d=Math.min(devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;game.width=W*d;game.height=H*d;ctx.setTransform(d,0,0,d,0,0);grassCache=[];grassCacheW=0;grassCacheH=0;}
+addEventListener('resize',resize);resize();
+
+function audioInit(){
+ if(!audioCtx){
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  bgmGain=audioCtx.createGain();seGain=audioCtx.createGain();masterGain=audioCtx.createGain();
+  masterComp=audioCtx.createDynamicsCompressor();
+  bgmGain.gain.value=bgmVolume;seGain.gain.value=seVolume;
+  masterGain.gain.value=1.85;
+  masterComp.threshold.value=-10;masterComp.knee.value=16;masterComp.ratio.value=5;
+  masterComp.attack.value=.003;masterComp.release.value=.16;
+  bgmGain.connect(masterGain);seGain.connect(masterGain);
+  masterGain.connect(masterComp);masterComp.connect(audioCtx.destination);
+ }
+ if(audioCtx.state==='suspended') audioCtx.resume();
+ startMusic(musicMode);
+}
+function tone(freq,dur=.1,vol=.05,type='sine',when=0){
+ if(!audioCtx)return;
+ const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime+when;
+ o.type=type;o.frequency.setValueAtTime(freq,t);
+ g.gain.setValueAtTime(Math.max(.0001,vol),t);
+ g.gain.exponentialRampToValueAtTime(.001,t+dur);
+ o.connect(g);g.connect(seGain||audioCtx.destination);o.start(t);o.stop(t+dur+.02);
+}
+function note(freq,dur,vol,type,when){
+ if(!audioCtx||!freq)return;
+ const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=when;
+ o.type=type;o.frequency.setValueAtTime(freq,t);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vol,t+.018);
+ g.gain.exponentialRampToValueAtTime(.001,t+dur);
+ o.connect(g);g.connect(bgmGain||audioCtx.destination);o.start(t);o.stop(t+dur+.03);
+}
+function noiseHit(when,vol=.018){
+ if(!audioCtx)return;
+ const len=Math.floor(audioCtx.sampleRate*.055),buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=buf.getChannelData(0);
+ for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+ const src=audioCtx.createBufferSource(),g=audioCtx.createGain();
+ src.buffer=buf;g.gain.setValueAtTime(vol,when);g.gain.exponentialRampToValueAtTime(.001,when+.055);
+ src.connect(g);g.connect(bgmGain||audioCtx.destination);src.start(when);
+}
+const N={C3:130.81,D3:146.83,E3:164.81,G3:196,A3:220,B3:246.94,C4:261.63,D4:293.66,E4:329.63,Fs4:369.99,G4:392,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,G5:783.99,A5:880};
+const MUSIC={
+ title:{
+  bpm:124,
+  melody:[N.G4,0,N.A4,N.C5,N.B4,N.G4,N.E4,0,N.G4,N.A4,N.B4,N.D5,N.C5,N.B4,N.G4,0],
+  bass:[N.C3,0,N.G3,0,N.A3,0,N.G3,0,N.C3,0,N.G3,0,N.D3,0,N.G3,0],
+  chord:[[N.C4,N.E4,N.G4],[N.A3,N.C4,N.E4],[N.G3,N.B3,N.D4],[N.C4,N.E4,N.G4]]
+ },
+ game:{
+  bpm:148,
+  melody:[N.E4,N.G4,N.A4,N.C5,N.B4,N.A4,N.G4,N.E4,N.G4,N.A4,N.C5,N.D5,N.C5,N.B4,N.G4,N.A4],
+  bass:[N.C3,0,N.C3,0,N.A3,0,N.G3,0,N.C3,0,N.C3,0,N.D3,0,N.G3,0],
+  chord:[[N.C4,N.E4,N.G4],[N.A3,N.C4,N.E4],[N.D4,N.Fs4,N.A4],[N.G3,N.B3,N.D4]]
+ },
+ boss:{
+  bpm:160,
+  melody:[N.A3,N.C4,N.D4,N.E4,N.D4,N.C4,N.A3,N.G3,N.A3,N.C4,N.E4,N.G4,N.E4,N.D4,N.C4,N.B3],
+  bass:[N.A3,0,N.A3,0,N.G3,0,N.G3,0,N.A3,0,N.C3,0,N.D3,0,N.E3,0],
+  chord:[[N.A3,N.C4,N.E4],[N.G3,N.B3,N.D4],[N.D3,N.Fs4,N.A4],[N.E3,N.G4,N.B4]]
+ }
+};
+function scheduleMusicStep(){
+ if(!audioCtx)return;
+ const m=MUSIC[musicMode]||MUSIC.game,step=musicStep%16;
+ const beat=60/m.bpm/2,t=musicNextTime;
+ const mel=m.melody[step],bass=m.bass[step];
+ // 木漏れ日の森を感じる丸い木琴/笛系リード
+ if(mel)note(mel,beat*.66,musicMode==='boss'?.035:.029,'triangle',t);
+ // ポップな冒険感：高音の短い返しと8分裏のアクセント
+ if(mel&&(step%2===1||step%4===2))note(mel*2,beat*.28,musicMode==='boss'?.010:.008,'sine',t+beat*.46);
+ if(musicMode!=='title'&&mel&&step%4===3)note(mel*1.5,beat*.24,.006,'square',t+beat*.58);
+ // 低域は太鼓とベースを兼ね、縁日・冒険感を出す
+ if(bass)note(bass,beat*.82,musicMode==='boss'?.030:.021,'sine',t);
+ if(step%4===0){
+  const chord=m.chord[(step/4)%m.chord.length];
+  chord.forEach((f,i)=>note(f,beat*3.3,.0065,'triangle',t+i*.008));
+  note(musicMode==='boss'?72:88,.09,.028,'triangle',t);
+  noiseHit(t,musicMode==='boss'?.022:.012);
+ }
+ if(step%2===1)noiseHit(t+beat*.48,musicMode==='boss'?.010:.007);
+ musicStep++;musicNextTime+=beat;
+}
+function musicScheduler(){
+ if(!audioCtx)return;
+ while(musicNextTime<audioCtx.currentTime+.12)scheduleMusicStep();
+}
+function startMusic(m){
+ musicMode=m;if(!audioCtx)return;
+ if(musicTimer){clearInterval(musicTimer);musicTimer=null}
+ musicStep=0;musicNextTime=audioCtx.currentTime+.035;
+ musicScheduler();
+ musicTimer=setInterval(musicScheduler,35);
+}
+function sfxHit(rare=0){
+ // N / SR: V55のポップHIT音を維持。
+ tone(rare?720:610,.075,rare?.075:.060,'sine');
+ tone(rare?1080:915,.11,rare?.060:.045,'triangle',.035);
+ tone(rare?1440:1220,.14,rare?.045:.030,'sine',.075);
+
+ // SSR: 「上位をGETした」と一聴で分かる短い上昇ファンファーレ。
+ if(rare===2){
+  tone(1568,.11,.055,'triangle',.115);
+  tone(1976,.16,.050,'sine',.175);
+  tone(2349,.24,.042,'sine',.245);
+ }
+ // UR: SSRより一段長く、黄金のレア演出を意識した5音の上昇＋余韻。
+ if(rare>=3){
+  tone(1568,.10,.060,'triangle',.105);
+  tone(1865,.12,.058,'triangle',.155);
+  tone(2093,.15,.055,'sine',.215);
+  tone(2637,.20,.050,'sine',.285);
+  tone(3136,.34,.044,'sine',.365);
+ }
+}
+function sfxCountdown(n){tone(n?440:880,.14,.09,'square')}
+function sfxVictory(){[392,523,659,784].forEach((f,i)=>tone(f,.28,.09,'triangle',i*.1))}
+
+const KANPYO_A=new Image(); KANPYO_A.src='assets/characters/c03_kanpyo_A.png';
+const KANPYO_B=new Image(); KANPYO_B.src='assets/characters/c03_kanpyo_B.png';
+const KANPYO_C=new Image(); KANPYO_C.src='assets/characters/c03_kanpyo_C.png';
+const KANPYO_IMG=KANPYO_A;
+
+const ICHIGO_A=new Image(); ICHIGO_A.src='assets/characters/c01_strawberry_A.png';
+const ICHIGO_B=new Image(); ICHIGO_B.src='assets/characters/c01_strawberry_B.png';
+const ICHIGO_C=new Image(); ICHIGO_C.src='assets/characters/c01_strawberry_C.png';
+
+const GYOZA_A=new Image(); GYOZA_A.src='assets/characters/c02_gyoza_A.png';
+const GYOZA_B=new Image(); GYOZA_B.src='assets/characters/c02_gyoza_B.png';
+const GYOZA_C=new Image(); GYOZA_C.src='assets/characters/c02_gyoza_C.png';
+
+const BOSS_A=new Image(); BOSS_A.src='assets/characters/c10_nine_tailed_fox_A.png';
+const BOSS_B=new Image(); BOSS_B.src='assets/characters/c10_nine_tailed_fox_B.png';
+const BOSS_C=new Image(); BOSS_C.src='assets/characters/c10_nine_tailed_fox_C.png';
+
+const WAGYU_A=new Image(); WAGYU_A.src='assets/characters/c08_golden_black_calf_A.png';
+const WAGYU_B=new Image(); WAGYU_B.src='assets/characters/c08_golden_black_calf_B.png';
+const WAGYU_C=new Image(); WAGYU_C.src='assets/characters/c08_golden_black_calf_C.png';
+
+const KANUMA_A=new Image(); KANUMA_A.src='assets/characters/c09_kanuma_phoenix_A.png';
+const KANUMA_B=new Image(); KANUMA_B.src='assets/characters/c09_kanuma_phoenix_B.png';
+const KANUMA_C=new Image(); KANUMA_C.src='assets/characters/c09_kanuma_phoenix_C.png';
+
+const RAIJIN_A=new Image(); RAIJIN_A.src='assets/characters/c11_legendary_raijin_A.png';
+const RAIJIN_B=new Image(); RAIJIN_B.src='assets/characters/c11_legendary_raijin_B.png';
+const RAIJIN_C=new Image(); RAIJIN_C.src='assets/characters/c11_legendary_raijin_C.png';
+
+const MONKEY_A=new Image(); MONKEY_A.src='assets/characters/c04_nikko_monkey_A.png';
+const MONKEY_B=new Image(); MONKEY_B.src='assets/characters/c04_nikko_monkey_B.png';
+const MONKEY_C=new Image(); MONKEY_C.src='assets/characters/c04_nikko_monkey_C.png';
+
+const GOLEM_A=new Image(); GOLEM_A.src='assets/characters/c06_oya_golem_A.png';
+const GOLEM_B=new Image(); GOLEM_B.src='assets/characters/c06_oya_golem_B.png';
+const GOLEM_C=new Image(); GOLEM_C.src='assets/characters/c06_oya_golem_C.png';
+
+const YUBA_A=new Image(); YUBA_A.src='assets/characters/c05_yuba_A.png';
+const YUBA_B=new Image(); YUBA_B.src='assets/characters/c05_yuba_B.png';
+const YUBA_C=new Image(); YUBA_C.src='assets/characters/c05_yuba_C.png';
+
+const TANUKI_A=new Image(); TANUKI_A.src='assets/characters/c07_mashiko_tanuki_A.png';
+const TANUKI_B=new Image(); TANUKI_B.src='assets/characters/c07_mashiko_tanuki_B.png';
+const TANUKI_C=new Image(); TANUKI_C.src='assets/characters/c07_mashiko_tanuki_C.png';
+
+const TREE_PAIR=new Image(); TREE_PAIR.src='assets/backgrounds/monkey_climbing_trees_pair.png';
+const GAME_BG=new Image();
+GAME_BG.src='assets/backgrounds/tochigi_forest_game_background_v2_1920x1080.png';
+
+const GRASS_A=new Image(); GRASS_A.src='assets/foreground/grass_motion_a.png';
+const GRASS_B=new Image(); GRASS_B.src='assets/foreground/grass_motion_b.png';
+const GRASS_C=new Image(); GRASS_C.src='assets/foreground/grass_motion_c.png';
+const GRASS_FRAMES=[GRASS_A,GRASS_B,GRASS_C];
+function grassDisplayHeight(){
+ const frame=GRASS_A;
+ if(frame.naturalWidth&&frame.naturalHeight) return W*(frame.naturalHeight/frame.naturalWidth);
+ return W*(399/1920);
+}
+function grassGroundY(){
+ // 草の密度が高くなる位置を、peekキャラの出入り基準にする。
+ return H-grassDisplayHeight()*.45;
+}
+
+
+const TYPES=[
+ {img:'ichigo',name:'トチアイカフェアリー',pts:20,r:54,motion:'ichigoHop',speed:.92},
+ {img:'gyoza',name:'ミヤッコギョーザ',pts:25,r:59,motion:'gyozaHop',speed:1.02},
+ {img:'kanpyo',name:'ユーガオカンピョー',pts:40,r:56,motion:'peek',speed:.95,foreground:true},
+ {img:'monkey',name:'ニッコウモンキー',pts:30,r:55,motion:'monkeyHop',speed:1.0},
+ {img:'golem',name:'オオヤイシゴーレム',pts:35,r:58,motion:'golemWalk',speed:.62},
+ {img:'yuba',name:'キヌガワユバケ',pts:30,r:53,motion:'yubaFloat',speed:.88},
+ {img:'tanuki',name:'マシコヤキタヌキ',pts:30,r:54,motion:'peek',speed:.92}];
+const RARES=[
+ {img:'wagyu',name:'トチワギュウ',pts:120,r:48,motion:'wagyuHop',speed:1.25,rare:1,label:'SR'},
+ {img:'kanuma',name:'カヌマフェニックス',pts:200,r:44,motion:'kanumaFly',speed:1.00,rare:2,label:'SSR'},
+ {img:'raijin',name:'ライサマ',pts:500,r:42,motion:'raijinFloat',speed:1.00,rare:3,label:'UR'}
+];
+
+function chooseSeparatedBase(base){
+ const marginX=Math.max(115,base.r+38);
+ const top=Math.max(150,base.r+70);
+ const bottom=Math.max(top+80,H-Math.max(165,base.r+90));
+ const existing=targets.filter(t=>t && t.motion!=='kanumaFly' && t.motion!=='raijinFloat' && t.motion!=='flythrough');
+ let best={x:W*.5,y:(top+bottom)*.5,score:-1};
+
+ for(let attempt=0;attempt<42;attempt++){
+  const x=marginX+Math.random()*Math.max(1,W-marginX*2);
+  const y=top+Math.random()*Math.max(1,bottom-top);
+  let nearest=Infinity;
+  for(const t of existing){
+   const dx=x-(t.bx??t.x),dy=y-(t.by??t.y);
+   const d=Math.hypot(dx,dy)-(base.r+(t.r||70));
+   nearest=Math.min(nearest,d);
+  }
+  if(!existing.length)return {x,y};
+  if(nearest>best.score)best={x,y,score:nearest};
+  if(nearest>95)return {x,y};
+ }
+ return {x:best.x,y:best.y};
+}
+
+function makeTarget(i){
+ let rareRoll=Math.random(),base;
+ if(rareRoll<.008) base={...RARES[2]};
+ else if(rareRoll<.031) base={...RARES[1]};
+ else if(rareRoll<.086) base={...RARES[0]};
+ else {
+  let pick=TYPES[Math.floor(Math.random()*TYPES.length)];
+  for(let n=0;n<3;n++){
+   const key=pick.img||pick.icon;
+   const same=targets.filter(t=>!t.rare && (t.img||t.icon)===key).length;
+   if(same<2) break;
+   pick=TYPES[Math.floor(Math.random()*TYPES.length)];
+  }
+  base={...pick};
+ }
+
+ // v32: 通常キャラはv31より少し小さめ。レアキャラはさらに小さく、狙いにくい高得点枠。
+ // v60で拡大。v70では50インチ実機確認を受けてさらに大型化。
+ // 見た目だけでなくHIT半径も同時に広がるので、子どもが狙いやすくなる。
+ // v70: 50インチ実機＋子どもの投球を基準に、V69からさらに約25%大型化。
+ // rは見た目とHIT半径の両方に使われるため、当てやすさも同時に上がる。
+ base.r=base.r*(base.rare ? 1.55 : 1.95);
+
+ const separated=chooseSeparatedBase(base);
+ let x=separated.x;
+ let y=separated.y;
+
+ // 茂みから見え隠れするキャラは画面下部に固定。
+ if(base.motion==='peek'){
+  const candidates=[W*.18,W*.38,W*.62,W*.82];
+  const open=candidates.filter(c=>!targets.some(t=>Math.abs((t.bx??t.x)-c)<170));
+  x=(open.length?open:candidates)[Math.floor(Math.random()*(open.length?open.length:candidates.length))];
+  y=H-92;
+ }
+ if(base.motion==='golemWalk'){
+  const candidates=[W*.22,W*.50,W*.78];
+  const open=candidates.filter(c=>!targets.some(t=>Math.abs((t.bx??t.x)-c)<190));
+  x=(open.length?open:candidates)[Math.floor(Math.random()*(open.length?open.length:candidates.length))];
+  y=H-158;
+ }
+
+ // 横切る飛行キャラは、左右どちらから来るかをランダム化。
+ const dir=Math.random()<.5?1:-1;
+ if(base.motion==='flythrough' || base.motion==='kanumaFly' || base.motion==='raijinFloat'){
+  x=dir===1?-base.r*1.8:W+base.r*1.8;
+  y=155+Math.random()*(H*.48);
+ }
+
+ return {
+  ...base,x,y,bx:x,by:y,t:Math.random()*10,phase:Math.random()*6.28,
+  dir,id:Math.random(),spawnAt:performance.now()
+ };
+}
+function desiredTargetCount(elapsedSec){
+ // v74: opening is intentionally sparse so children can choose a target before the screen gets busy.
+ if(elapsedSec<7)return 2;
+ if(elapsedSec<14)return 3;
+ if(elapsedSec<22)return 4;
+ if(elapsedSec<32)return 5;
+ return 6;
+}
+function populate(){targets=[];for(let i=0;i<2;i++)targets.push(makeTarget(i))}
+function growTargetPopulation(elapsedSec){
+ const desired=desiredTargetCount(elapsedSec);
+ while(targets.length<desired)targets.push(makeTarget(targets.length));
+}
+function pos(t,now){
+ let z=now*.001*t.speed*speedMultiplier()+t.phase,x=t.bx,y=t.by,scale=1,rot=0;
+ const age=(now-(t.spawnAt||now))*.001*speedMultiplier();
+
+ if(t.motion==='side'){
+  x=t.bx+Math.sin(z)*Math.min(180,W*.14);
+  y=t.by+Math.sin(z*1.8)*16;
+ }
+ if(t.motion==='ichigoHop'){
+  // メインキャラらしく、画面内をゆっくり移動しながら小気味よく跳ねる
+  x=t.bx+Math.sin(z*.55)*Math.min(105,W*.085);
+  const hop=Math.abs(Math.sin(z*1.65));
+  y=t.by-hop*72;
+  scale=1 + hop*.055;
+  rot=Math.sin(z*1.65)*.055;
+ }
+ if(t.motion==='gyozaHop'){
+  // ちょこちょこ走って、小さくぴょんっと跳ねる
+  const run=Math.sin(z*.95);
+  x=t.bx+run*Math.min(92,W*.075);
+  const hop=Math.abs(Math.sin(z*2.15));
+  y=t.by-hop*48;
+  scale=1+hop*.035;
+  rot=Math.sin(z*2.15)*.075;
+ }
+ if(t.motion==='wagyuHop'){
+  // レア和牛：軽快に横移動しながら小さく跳ねる。
+  x=t.bx+Math.sin(z*.78)*Math.min(110,W*.09);
+  const hop=Math.abs(Math.sin(z*1.55));
+  y=t.by-hop*44;
+  rot=Math.sin(z*1.55)*.045;
+  scale=1+hop*.035;
+ }
+ if(t.motion==='kanumaFly'){
+  // V58: SSR/URはメタデータspeedではなく実効px/secで制御。
+  // カヌマフェニックスは以前より明確に減速し、狙える時間を確保。
+  const dir=t.dir||1;
+  const span=W+t.r*4;
+  const px=(age*112+(t.phase||0)*90)%span;
+  x=dir>0 ? -t.r*2+px : W+t.r*2-px;
+  y=t.by + Math.sin(age*2.7+(t.phase||0))*27;
+  rot=Math.sin(age*3.0+(t.phase||0))*.055;
+  scale=1+Math.sin(age*3.8)*.022;
+ }
+ if(t.motion==='raijinFloat'){
+  // URライサマもカヌマフェニックスとほぼ同じ実効速度で左右を横断。
+  // URらしく上下の浮遊量だけ少し大きくする。
+  const dir=t.dir||1;
+  const span=W+t.r*4;
+  const px=(age*116+(t.phase||0)*90)%span;
+  x=dir>0 ? -t.r*2+px : W+t.r*2-px;
+  y=t.by + Math.sin(age*2.55+(t.phase||0))*34;
+  rot=Math.sin(age*2.8+(t.phase||0))*.05;
+  scale=1+Math.sin(age*3.5)*.025;
+ }
+
+ if(t.motion==='monkeyHop'){
+  // 提供された左右2本の木PNGに沿って上下する。
+  // 木の幹中心は画像上のおよそ20.5% / 78.2%。
+  const useLeft=((Math.floor((t.phase||0)*10)%2)===0);
+  const treeX=useLeft ? W*.205 : W*.782;
+  const climb=(Math.sin(z*.72+(t.phase||0)*2.4)*.5+.5);
+  x=treeX+Math.sin(z*1.15)*5;
+  y=H*.25+climb*H*.48;
+  rot=Math.sin(z*.85)*.025;
+  scale=.94;
+ }
+ if(t.motion==='golemWalk'){
+  const walk=Math.sin(z*.30);
+  x=t.bx+walk*Math.min(165,W*.13);
+  const step=Math.abs(Math.sin(z*.60));
+  y=H-158-step*7;
+  rot=Math.sin(z*.60)*.025;
+  scale=1+step*.012;
+ }
+ if(t.motion==='yubaFloat'){
+  x=t.bx+Math.sin(z*.55)*Math.min(115,W*.10); y=t.by+Math.sin(z*.82)*28;
+  rot=Math.sin(z*.72)*.075; scale=1+Math.sin(z*1.15)*.025;
+ }
+ if(t.motion==='jump'){
+  x=t.bx+Math.sin(z*.7)*70;
+  y=t.by-Math.abs(Math.sin(z*1.7))*90;
+  rot=Math.sin(z)*.08;
+ }
+ if(t.motion==='float'){
+  x=t.bx+Math.sin(z*.8)*55;
+  y=t.by+Math.sin(z*1.25)*45;
+  scale=1+Math.sin(z*1.5)*.09;
+ }
+ if(t.motion==='sway'){
+  x=t.bx+Math.sin(z*1.3)*90;
+  y=t.by+Math.cos(z*.8)*20;
+  rot=Math.sin(z*2)*.13;
+ }
+ if(t.motion==='zigzag'){
+  x=t.bx+Math.sin(z*1.8)*130;
+  y=t.by+Math.sin(z*2.7)*55;
+  scale=1+Math.sin(z*2)*.06;
+ }
+
+ // 左右の画面外から入り、反対側へ抜ける飛行キャラ。
+ if(t.motion==='flythrough'){
+  const travel=(W+t.r*4);
+  const px=(age*(150+45*t.speed))%(travel+t.r*2);
+  x=t.dir===1 ? -t.r*2+px : W+t.r*2-px;
+  y=t.by+Math.sin(age*3.2+t.phase)*26;
+  rot=Math.sin(age*5+t.phase)*.06;
+ }
+
+ // 手前の茂みから「しっかり出る→1〜3秒静止→引っ込む」を繰り返す。
+ if(t.motion==='peek'){
+  // キャラごとに静止時間を1〜3秒で固定
+  const hold=1 + ((Math.sin(t.phase*3.17)+1)/2)*2;
+  const rise=.55;
+  const fall=.55;
+  const hidden=1.35;
+  const cycleLen=rise+hold+fall+hidden;
+  const cycle=(age+t.phase)%cycleLen;
+
+  let reveal=0;
+  if(cycle<rise){
+   reveal=cycle/rise;                         // ひょこっ
+  }else if(cycle<rise+hold){
+   reveal=1;                                  // 1〜3秒しっかり静止
+  }else if(cycle<rise+hold+fall){
+   reveal=1-(cycle-rise-hold)/fall;           // 引っ込む
+  }else{
+   reveal=0;                                  // 完全に隠れる
+  }
+
+  const eased=reveal*reveal*(3-2*reveal);
+
+  // 地面ラインより下には見せない前提で、顔・上半身がしっかり出る高さまで上げる
+  const groundY=grassGroundY();
+  const hiddenY=groundY + t.r*.72;            // 完全に茂みの下
+  const visibleY=groundY - t.r*1.42;           // v31: 足元だけ茂みに残し、全身の約75〜85%を見せる
+  y=hiddenY + (visibleY-hiddenY)*eased;
+
+  // 静止中はほぼ動かさない
+  x=t.bx + (reveal<.98 ? Math.sin(age*2.0+t.phase)*6 : 0);
+  scale=.95 + eased*.05;
+ }
+
+ // flythrough は画面外まで許可。peek は下端まで許可。
+ if(t.motion!=='flythrough'){
+  x=Math.max(55,Math.min(W-55,x));
+ }
+ if(t.motion!=='peek'){
+  y=Math.max(145,Math.min(H-100,y));
+ }
+
+ return{x,y,scale,rot}
+}
+function reset(){bossInstruction.style.display='none';score=0;timeLeft=50;kos=0;captured=[];bonusGiven=false;bossMode=false;ballFlying=false;flightLastPoint=null;flightStartedAt=0;flightMissing=0;armed=false;lastCenter=null;scoreEl.textContent=0;timeEl.textContent=50;koEl.textContent=0;populate()}
+async function startGame(m){
+ audioInit();mode=m;reset();startScreen.classList.add('hidden');resultScreen.classList.add('hidden');
+ await countdown();running=true;gameStartedAt=performance.now();startMusic('game');
+ if(mode==='camera'){video.style.display='block';detectStatus.style.display='block';await startCamera()}
+ timer=setInterval(()=>{
+  if(!running)return;
+  const elapsedSec=(performance.now()-gameStartedAt)/1000;
+  growTargetPopulation(elapsedSec);
+  timeLeft--;timeEl.textContent=timeLeft;
+  if(timeLeft===10&&!bossMode){bossMode=true;bossInstruction.style.display='block';startMusic('boss');flash('ここの主が現れた！','ボールを投げ続けろ！');}
+  if(timeLeft<=0)endGame();
+ },1000);
+}
+async function countdown(){for(let n=3;n>=1;n--){flash(String(n));sfxCountdown(1);await wait(650)}flash('スタート！');sfxCountdown(0);await wait(700)}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function flash(txt,sub=''){
+ messageEl.innerHTML=txt+(sub?'<div class="messageSub">'+sub+'</div>':'');
+ messageEl.style.opacity=1;messageEl.style.transform='scale(1)';
+ setTimeout(()=>{messageEl.style.opacity=0;messageEl.style.transform='scale(.7)'},550);
+}
+function pointToSegmentDistance(px,py,ax,ay,bx,by){
+ const vx=bx-ax,vy=by-ay,wx=px-ax,wy=py-ay;
+ const vv=vx*vx+vy*vy;
+ if(vv<.0001)return Math.hypot(px-ax,py-ay);
+ let t=(wx*vx+wy*vy)/vv;t=Math.max(0,Math.min(1,t));
+ const qx=ax+t*vx,qy=ay+t*vy;
+ return Math.hypot(px-qx,py-qy);
+}
+
+function movingTargetHit(t,x,y,now){
+ // 茂みにほぼ隠れている間は当たり判定を止める。
+ if(t.motion==='peek'){
+  const pNow=pos(t,now);
+  const groundY=grassGroundY();
+  // しっかり姿を出している時だけ当たり判定を有効化
+  if(pNow.y>groundY-t.r*.55)return null;
+ }
+ // カメラ検出→着弾確定までのわずかな遅れを吸収するため、
+ // 現在位置だけでなく直近約260msの移動軌跡も当たり判定にする。
+ const samples=[0,65,130,195,260].map(ms=>pos(t,now-ms));
+
+ // 実物ボールでは完全なピクセル精度は不要なので、見た目より広め。
+ // 高速キャラも理不尽になりすぎないよう速度分を少し加算。
+ const radius=t.r*1.75 + Math.min(18,(t.speed||1)*7);
+
+ for(const p of samples){
+  if(Math.hypot(x-p.x,y-p.y)<=radius)return p;
+ }
+ for(let i=0;i<samples.length-1;i++){
+  const a=samples[i],b=samples[i+1];
+  if(pointToSegmentDistance(x,y,a.x,a.y,b.x,b.y)<=radius)return samples[0];
+ }
+ return null;
+}
+
+
+function captureImageHTML(c){
+ let src='';
+ if(c.img==='kanpyo') src=KANPYO_A.src;
+ else if(c.img==='ichigo') src=ICHIGO_A.src;
+ else if(c.img==='gyoza') src=GYOZA_A.src;
+ else if(c.img==='monkey') src=MONKEY_A.src;
+ else if(c.img==='golem') src=GOLEM_A.src;
+ else if(c.img==='yuba') src=YUBA_A.src;
+ else if(c.img==='tanuki') src=TANUKI_A.src;
+ else if(c.img==='wagyu') src=WAGYU_A.src;
+ else if(c.img==='kanuma') src=KANUMA_A.src;
+ else if(c.img==='raijin') src=RAIJIN_A.src;
+ else if(c.img==='boss') src=BOSS_A.src;
+ return src ? `<img src="${src}" alt="${c.name}">` : (c.icon||'？');
+}
+
+function renderCapturedResult(){
+ const grid=document.getElementById('capturedGrid');
+ const summary=document.getElementById('captureSummary');
+ grid.innerHTML='';
+ const groups=new Map();
+ for(const c of captured){
+  if(!groups.has(c.name))groups.set(c.name,{...c,count:0});
+  groups.get(c.name).count++;
+ }
+ summary.textContent=`つかまえたキャラ ${captured.length}体 / ${groups.size}種類`;
+ if(captured.length===0){
+  grid.innerHTML='<div style="grid-column:1/-1;color:#d8e2d5;padding:24px">今回はまだつかまえられなかった…もう一度チャレンジ！</div>';
+  return;
+ }
+ for(const c of groups.values()){
+  const card=document.createElement('div');
+  card.className='captureCard';
+  card.innerHTML=`<div class="captureIcon">${captureImageHTML(c)}</div>
+   <div class="captureName">${c.name}</div>
+   <div class="captureCount">${c.count}体</div>`;
+  grid.appendChild(card);
+ }
+}
+
+function spawnHitBurst(x,y,rare=0){
+ // v76: 粒数ではなくサイズ・速度・リングで派手さを作る軽量版。
+ const count=rare===0?14:(rare===1?18:(rare===2?22:26));
+ const tierColor=rare===1?'#dc914b':(rare===2?'#edf8ff':(rare>=3?'#ffd43b':'#fff0a0'));
+ const speedMax=rare===0?220:(rare===1?260:(rare===2?300:340));
+ const sizeMax=rare===0?9:(rare===1?11:(rare===2?13:15));
+ for(let i=0;i<count;i++){
+  const a=Math.random()*Math.PI*2,sp=105+Math.random()*speedMax;
+  hitParticles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,
+   size:4+Math.random()*sizeMax,spin:Math.random()*6.28,rare,
+   color:i%4===0?'#ffffff':(i%4===1?'#fff7c7':tierColor)});
+ }
+ // 数個の大きい図形だけに光彩を使う。
+ hitParticles.push({x,y,vx:0,vy:0,life:1,size:28+(rare*5),rare,color:tierColor,kind:'ring'});
+ if(rare)hitParticles.push({x,y,vx:0,vy:0,life:.86,size:48+(rare*6),rare,color:'#ffffff',kind:'ring'});
+ hitParticles.push({x,y,vx:0,vy:0,life:.92,size:34+(rare*5),rare,color:'#ffffff',kind:'flash'});
+ if(hitParticles.length>120)hitParticles.splice(0,hitParticles.length-120);
+}
+function drawHitParticles(){
+ const dt=.016;
+ ctx.save();
+ ctx.globalCompositeOperation='lighter';
+ for(let i=hitParticles.length-1;i>=0;i--){
+  const p=hitParticles[i];p.life-=dt*(p.kind?2.8:2.35);
+  if(p.life<=0){hitParticles.splice(i,1);continue}
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=105*dt;
+  ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=Math.min(1,p.life*1.8);
+  if(p.kind==='ring'){
+   const r=p.size+(1-p.life)*(p.rare?104:86);
+   ctx.strokeStyle=p.color;ctx.lineWidth=(p.rare?5:4)*p.life+1;
+   ctx.shadowColor=p.color;ctx.shadowBlur=p.rare?15:10;
+   ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
+  }else if(p.kind==='flash'){
+   const r=p.size+(1-p.life)*(p.rare?31:25);
+   ctx.fillStyle=p.color;ctx.shadowColor=p.color;ctx.shadowBlur=p.rare?18:12;
+   ctx.rotate(Math.PI/4);
+   ctx.fillRect(-r*.10,-r,r*.20,r*2);ctx.fillRect(-r,-r*.10,r*2,r*.20);
+  }else{
+   // Individual spark particles deliberately have no shadowBlur.
+   ctx.rotate(p.spin+(1-p.life)*4);
+   ctx.fillStyle=p.color;
+   ctx.beginPath();ctx.moveTo(0,-p.size*1.55);ctx.lineTo(p.size*.52,0);
+   ctx.lineTo(0,p.size*1.55);ctx.lineTo(-p.size*.52,0);ctx.closePath();ctx.fill();
+  }
+  ctx.restore();
+ }
+ ctx.restore();
+}
+function hitAt(x,y){
+ if(!running)return;
+ const now=performance.now();
+ if(now-lastHit<170)return;
+
+ if(bossMode){
+  const bx=W/2+Math.sin(now*.0022)*24;
+  const by=H*.47+Math.sin(now*.004)*9;
+  score+=25;scoreEl.textContent=score;
+  effects.push({x:bx,y:by,life:1,rare:2,text:'HIT! +25',img:'boss'});
+  sfxHit(2);lastHit=now;return;
+ }
+
+ let hit=null,hp=null;
+ for(const t of targets){
+  const p=movingTargetHit(t,x,y,now);
+  if(p){hit=t;hp=p;break}
+ }
+ if(!hit)return;
+
+ captured.push({name:hit.name,icon:hit.icon||'',img:hit.img||'',pts:hit.pts,rare:hit.rare||0});
+ score+=hit.pts;kos++;
+ scoreEl.textContent=score;koEl.textContent=kos;
+ lastHit=now;sfxHit(hit.rare||0);
+
+ // リアクションは「当たったと判定したキャラの現在位置」に固定。
+ const reactionPos=pos(hit,now);
+ effects.push({
+  x:reactionPos.x,y:reactionPos.y,life:1,rare:hit.rare||0,
+  text:'GET! +'+hit.pts,img:hit.img||'',
+  holdUntil:now+500,fadeRate:.050
+ });
+ spawnHitBurst(reactionPos.x,reactionPos.y,hit.rare||0);
+ if(effects.length>80) effects.splice(0,effects.length-80);
+
+ if(hit.rare){
+  // v76: レア通知は残すが、重い「文字キラキラ数十個」は廃止。
+  // レア感は軽量な幾何パーティクル／リング側で表現する。
+  flash((hit.label||'レア')+'をゲット！');
+ }
+
+ const idx=targets.indexOf(hit);
+ targets[idx]=makeTarget(idx);
+
+ if(score>=300&&!bonusGiven){
+  bonusGiven=true;timeLeft+=10;timeEl.textContent=timeLeft;
+  flash('TIME BONUS','+10秒！');
+  [660,880,1100].forEach((f,i)=>tone(f,.2,.07,'square',i*.08));
+ }
+}
+
+game.addEventListener('pointerdown',e=>{if(mode==='test'&&running)hitAt(e.clientX,e.clientY)});
+
+function drawBg(){
+ if(GAME_BG.complete && GAME_BG.naturalWidth){
+  ctx.drawImage(GAME_BG,0,0,W,H);
+  drawTreePair();
+ }else{
+  ctx.fillStyle='#79b95b';
+  ctx.fillRect(0,0,W,H);
+ }
+}
+function drawTarget(t,now){
+ let p=pos(t,now);
+ ctx.save();
+ ctx.translate(p.x,p.y);
+ ctx.rotate(p.rot);
+ ctx.scale(p.scale,p.scale);
+ ctx.globalAlpha=1;
+ ctx.textAlign='center';
+ ctx.textBaseline='middle';
+ ctx.shadowColor='transparent';
+ ctx.shadowBlur=0;
+
+ if(t.img==='kanpyo' && KANPYO_A.complete && KANPYO_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/380)%2===0)?KANPYO_A:KANPYO_B;
+  const h=t.r*2.35;
+  const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='ichigo' && ICHIGO_A.complete && ICHIGO_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/430)%2===0)?ICHIGO_A:ICHIGO_B;
+  const h=t.r*2.30;
+  const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='gyoza' && GYOZA_A.complete && GYOZA_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/360)%2===0)?GYOZA_A:GYOZA_B;
+  const h=t.r*2.32;
+  const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='wagyu' && WAGYU_A.complete && WAGYU_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/360)%2===0)?WAGYU_A:WAGYU_B;
+  const h=t.r*2.20;
+  const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='kanuma' && KANUMA_A.complete && KANUMA_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/300)%2===0)?KANUMA_A:KANUMA_B;
+  const h=t.r*2.22;
+  const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='raijin' && RAIJIN_A.complete && RAIJIN_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/300)%2===0)?RAIJIN_A:RAIJIN_B;
+  const h=t.r*2.20; const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='monkey' && MONKEY_A.complete && MONKEY_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/390)%2===0)?MONKEY_A:MONKEY_B;
+  const h=t.r*2.32;
+  const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='golem' && GOLEM_A.complete && GOLEM_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/620)%2===0)?GOLEM_A:GOLEM_B;
+  const h=t.r*2.32; const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='yuba' && YUBA_A.complete && YUBA_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/430)%2===0)?YUBA_A:YUBA_B;
+  const h=t.r*2.32; const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else if(t.img==='tanuki' && TANUKI_A.complete && TANUKI_A.naturalWidth){
+  const frame=(Math.floor((now+(t.phase||0)*1000)/430)%2===0)?TANUKI_A:TANUKI_B;
+  const h=t.r*2.32; const w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else{
+  ctx.font=(t.r*1.35)+'px "Apple Color Emoji","Segoe UI Emoji",sans-serif';
+  ctx.fillText(t.icon||'?',0,0);
+ }
+ ctx.shadowBlur=0;
+
+ if(t.rare){
+  const tier=t.rare;
+  const aura=tier===1?'#cd7f32':(tier===2?'#d9e2ea':'#ffd700');
+  const stars=tier===1?3:(tier===2?4:6);
+  const orbit=t.r*(tier===1?1.38:(tier===2?1.47:1.56));
+
+  ctx.save();
+  ctx.strokeStyle=aura;
+  ctx.globalAlpha=tier===1?.80:(tier===2?.90:1);
+  ctx.lineWidth=tier===1?3:(tier===2?4:5);
+  ctx.beginPath();ctx.arc(0,0,t.r*1.18,0,Math.PI*2);ctx.stroke();
+
+  // Simple diamonds: no font rendering and no shadowBlur every frame.
+  ctx.fillStyle=tier===1?'#e7a968':(tier===2?'#ffffff':'#fff3a0');
+  for(let i=0;i<stars;i++){
+   const a=now*(tier===1?.0013:(tier===2?.0017:.0021))+i*(Math.PI*2/stars);
+   const px=Math.cos(a)*orbit,py=Math.sin(a)*orbit*.88;
+   const sz=tier===1?5:(tier===2?7:9);
+   ctx.save();ctx.translate(px,py);ctx.rotate(a+now*.001);
+   ctx.globalAlpha=.72+.25*Math.sin(now*.005+i);
+   ctx.fillRect(-sz*.35,-sz,sz*.7,sz*2);
+   ctx.fillRect(-sz,-sz*.35,sz*2,sz*.7);
+   ctx.restore();
+  }
+  ctx.restore();
+
+  ctx.font='900 18px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif';
+  const labelY=-t.r-27;
+  const labelGrad=ctx.createLinearGradient(0,labelY-18,0,labelY+12);
+  if(tier===1){labelGrad.addColorStop(0,'#fff4d2');labelGrad.addColorStop(.5,'#e8a45e');labelGrad.addColorStop(1,'#9a5429');}
+  else if(tier===2){labelGrad.addColorStop(0,'#ffffff');labelGrad.addColorStop(.48,'#e8eef2');labelGrad.addColorStop(1,'#9baab4');}
+  else{labelGrad.addColorStop(0,'#ffffff');labelGrad.addColorStop(.42,'#fff4a3');labelGrad.addColorStop(1,'#f2a91f');}
+  ctx.fillStyle=labelGrad;
+  ctx.strokeStyle='rgba(30,18,8,.92)';
+  ctx.lineWidth=tier===1?6:(tier===2?8:10);
+  ctx.strokeText(t.label,0,labelY);
+  ctx.strokeStyle=tier===1?'#f0b06c':(tier===2?'#ffffff':'#fff4a3');
+  ctx.lineWidth=tier===1?2:(tier===2?3:4);
+  ctx.strokeText(t.label,0,labelY);
+  ctx.fillText(t.label,0,labelY);
+ }
+
+ const scoreY=t.r+38;
+ const numText=String(t.pts),unitText='pt';
+ ctx.textBaseline='middle';
+ ctx.font='900 34px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif';
+ const numW=ctx.measureText(numText).width;
+ ctx.font='900 15px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif';
+ const unitW=ctx.measureText(unitText).width;
+ const gap=5,totalW=numW+gap+unitW,startX=-totalW/2;
+ const scoreGrad=ctx.createLinearGradient(0,scoreY-18,0,scoreY+18);
+ scoreGrad.addColorStop(0,'#ffffff');
+ scoreGrad.addColorStop(.52,'#fff9df');
+ scoreGrad.addColorStop(1,'#f2d89a');
+ ctx.shadowColor='rgba(255,242,185,.38)';ctx.shadowBlur=10;ctx.shadowOffsetY=0;
+ ctx.strokeStyle='rgba(31,48,25,.96)';ctx.lineJoin='round';
+ ctx.font='900 34px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif';
+ ctx.lineWidth=8;ctx.strokeText(numText,startX+numW/2,scoreY);
+ ctx.fillStyle=scoreGrad;ctx.fillText(numText,startX+numW/2,scoreY);
+ ctx.font='900 15px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif';
+ ctx.lineWidth=4;ctx.strokeText(unitText,startX+numW+gap+unitW/2,scoreY+6);
+ ctx.fillStyle='#fff0bd';ctx.fillText(unitText,startX+numW+gap+unitW/2,scoreY+6);
+ ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+ ctx.restore();
+}
+function drawBoss(now){
+ // HITリアクション中は通常A/Bを描画しない（二重表示防止）
+ if(effects.some(e=>e.img==='boss' && e.life>0)) return;
+ let bob=Math.sin(now*.004)*9, sway=Math.sin(now*.0022)*24;
+ const frame=(Math.floor(now/430)%2===0)?BOSS_A:BOSS_B;
+ const bx=W/2+sway, by=H*.47+bob;
+ ctx.save();ctx.translate(bx,by);
+ const pulse=1+Math.sin(now*.006)*.025;ctx.scale(pulse,pulse);
+ ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#ffbf2f';ctx.shadowBlur=30;
+ if(frame.complete&&frame.naturalWidth){
+  const h=Math.min(440,H*.58),w=h*(frame.naturalWidth/frame.naturalHeight);
+  ctx.drawImage(frame,-w/2,-h/2,w,h);
+ }else{ctx.font='150px serif';ctx.fillText('🦊',0,0);}
+ // v72: ボス名はゲーム中に表示しない。キャラクターそのものを主役にする。
+ ctx.shadowBlur=0;ctx.restore();
+}
+
+function rebuildGrassCache(){
+ // 3枚すべて実画像になっている時だけ完成扱い。
+ if(grassCacheW===W && grassCacheH===H &&
+    grassCache.length===3 && grassCache.every(Boolean)) return true;
+
+ if(!GRASS_FRAMES.every(frame=>frame.complete && frame.naturalWidth>0)) return false;
+
+ grassCacheW=W;grassCacheH=H;
+ grassCache=GRASS_FRAMES.map(frame=>{
+  const c=document.createElement('canvas');
+  const h=Math.max(1,Math.ceil(W*(frame.naturalHeight/frame.naturalWidth)));
+  c.width=W;c.height=h;
+  const g=c.getContext('2d',{alpha:true});
+  g.drawImage(frame,0,0,W,h);
+  return c;
+ });
+ return true;
+}
+GRASS_FRAMES.forEach(frame=>{
+ frame.addEventListener('load',()=>{
+  grassCache=[];grassCacheW=0;grassCacheH=0;
+  rebuildGrassCache();
+ },{once:true});
+});
+function drawTreePair(){
+ if(!TREE_PAIR.complete||!TREE_PAIR.naturalWidth)return;
+ // One supplied PNG already contains both trees. Fill game field, preserving its 16:9 composition.
+ ctx.drawImage(TREE_PAIR,0,0,W,H);
+}
+function drawForegroundBush(){
+ if(!rebuildGrassCache()) return;
+ const c=grassCache[Math.floor(performance.now()/420)%3];
+ if(c) ctx.drawImage(c,0,H-c.height);
+}
+
+let drawErrorShown=false;
+let hitParticles=[];
+function draw(){
+ try{
+ let now=performance.now();
+ drawBg();
+
+ if(running){
+  if(bossMode){
+   drawBoss(now);
+  }else{
+   // 背景側のキャラクター
+   for(let t of targets){
+    if(!t.foreground && t.img!=='golem') drawTarget(t,now);
+   }
+
+   // 茂みから顔を出すキャラは茂みの「奥」に描く。
+   for(let t of targets){
+    if(t.foreground) drawTarget(t,now);
+   }
+  }
+ }
+
+ // 前景レイヤー：画面下の茂み
+ drawForegroundBush();
+ drawHitParticles();
+
+ // オオヤイシゴーレムは地上歩行キャラ。草より手前に描画して全身を見せる。
+ if(running && !bossMode){
+  for(let t of targets){
+   if(t.img==='golem') drawTarget(t,now);
+  }
+ }
+
+ for(let i=effects.length-1;i>=0;i--){
+  let e=effects[i];
+  const holding=!!e.holdUntil && now<e.holdUntil;
+  if(!holding)e.life-=(e.fadeRate||.035);
+  ctx.save();
+  ctx.globalAlpha=e.img==='boss'?1:(holding?1:Math.max(0,e.life));
+  ctx.translate(e.x,e.y);
+  if(e.img!=='boss' && !holding){const shrink=.72+.28*Math.max(0,e.life);ctx.scale(shrink,shrink);}
+  ctx.textAlign='center';
+  if(e.img==='kanpyo' && KANPYO_C.complete && KANPYO_C.naturalWidth){
+   const rh=209;
+   const rw=rh*(KANPYO_C.naturalWidth/KANPYO_C.naturalHeight);
+   ctx.drawImage(KANPYO_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='ichigo' && ICHIGO_C.complete && ICHIGO_C.naturalWidth){
+   const rh=204;
+   const rw=rh*(ICHIGO_C.naturalWidth/ICHIGO_C.naturalHeight);
+   ctx.drawImage(ICHIGO_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='gyoza' && GYOZA_C.complete && GYOZA_C.naturalWidth){
+   const rh=201;
+   const rw=rh*(GYOZA_C.naturalWidth/GYOZA_C.naturalHeight);
+   ctx.drawImage(GYOZA_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='boss' && BOSS_C.complete && BOSS_C.naturalWidth){
+   const rh=Math.min(440,H*.58);
+   const rw=rh*(BOSS_C.naturalWidth/BOSS_C.naturalHeight);
+   ctx.save();
+   ctx.shadowColor='#ffbf2f';
+   ctx.shadowBlur=30;
+   ctx.drawImage(BOSS_C,-rw/2,-rh/2-18,rw,rh);
+   ctx.restore();
+  }else if(e.img==='wagyu' && WAGYU_C.complete && WAGYU_C.naturalWidth){
+   const rh=201;
+   const rw=rh*(WAGYU_C.naturalWidth/WAGYU_C.naturalHeight);
+   ctx.drawImage(WAGYU_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='kanuma' && KANUMA_C.complete && KANUMA_C.naturalWidth){
+   const rh=173;
+   const rw=rh*(KANUMA_C.naturalWidth/KANUMA_C.naturalHeight);
+   ctx.drawImage(KANUMA_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='raijin' && RAIJIN_C.complete && RAIJIN_C.naturalWidth){
+   const rh=209; const rw=rh*(RAIJIN_C.naturalWidth/RAIJIN_C.naturalHeight);
+   ctx.drawImage(RAIJIN_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='monkey' && MONKEY_C.complete && MONKEY_C.naturalWidth){
+   const rh=173;
+   const rw=rh*(MONKEY_C.naturalWidth/MONKEY_C.naturalHeight);
+   ctx.drawImage(MONKEY_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='golem' && GOLEM_C.complete && GOLEM_C.naturalWidth){
+   const rh=209; const rw=rh*(GOLEM_C.naturalWidth/GOLEM_C.naturalHeight);
+   ctx.drawImage(GOLEM_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='yuba' && YUBA_C.complete && YUBA_C.naturalWidth){
+   const rh=201; const rw=rh*(YUBA_C.naturalWidth/YUBA_C.naturalHeight);
+   ctx.drawImage(YUBA_C,-rw/2,-rh/2-18,rw,rh);
+  }else if(e.img==='tanuki' && TANUKI_C.complete && TANUKI_C.naturalWidth){
+   const rh=204; const rw=rh*(TANUKI_C.naturalWidth/TANUKI_C.naturalHeight);
+   ctx.drawImage(TANUKI_C,-rw/2,-rh/2-18,rw,rh);
+  }
+  ctx.font=e.spark?`900 ${Math.round(e.sparkSize||34)}px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif`:'900 34px "Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif';
+  const textY=(e.img==='kanpyo'||e.img==='ichigo'||e.img==='gyoza'||e.img==='kanuma'||e.img==='boss'||e.img==='monkey'||e.img==='golem'||e.img==='yuba'||e.img==='tanuki'||e.img==='wagyu')?72:0;
+  const fxGrad=ctx.createLinearGradient(0,textY-22,0,textY+18);
+  fxGrad.addColorStop(0,'#ffffff');fxGrad.addColorStop(.46,'#fff8d4');
+  fxGrad.addColorStop(1,e.rare===1?'#d99955':(e.rare===2?'#c9d6df':(e.rare===3?'#f1bb32':'#e8c66f')));
+  ctx.fillStyle=fxGrad;
+  ctx.shadowColor=e.rare?'rgba(255,232,130,.92)':'rgba(255,245,200,.58)';ctx.shadowBlur=e.spark?(e.rare?25:16):(e.rare?16:10);
+  ctx.strokeStyle='#34200f';ctx.lineJoin='round';ctx.lineWidth=7;
+  ctx.strokeText(e.text,0,textY);
+  ctx.fillText(e.text,0,textY);
+  ctx.shadowBlur=0;
+  ctx.restore();
+  if(e.life<=0)effects.splice(i,1)
+ }
+ }catch(err){
+  console.error('DRAW ERROR',err);
+  if(!drawErrorShown){
+   drawErrorShown=true;
+   // 操作系・BGMは止めず、次フレームで描画復帰を試みる。
+  }
+ }finally{
+  requestAnimationFrame(draw);
+ }
+}
+
+async function endGame(){
+ bossInstruction.style.display='none';
+ if(!running)return;
+ running=false;
+ if(timer){clearInterval(timer);timer=null}
+
+ if(bossMode){
+  const now=performance.now();
+  const bx=W/2+Math.sin(now*.0022)*24;
+  const by=H*.47+Math.sin(now*.004)*9;
+
+  captured.push({name:'那須九尾ノ妖狐',icon:'',img:'boss',pts:0,rare:2});
+  kos++;
+  koEl.textContent=kos;
+
+  // タイムアップ → 九尾Cリアクション → 捕獲演出 → 結果画面
+  effects.push({x:bx,y:by,life:1.8,rare:2,text:'',img:'boss'});
+  sfxHit(2);
+  flash('主をゲット！');
+  await wait(1500);
+ }else{
+  flash('タイムアップ！','つかまえた仲間を見てみよう！');
+  await wait(900);
+ }
+
+ sfxVictory();
+ await wait(350);
+ startMusic('title');
+ showCaptureResult();
+}
+
+function showCaptureResult(){
+ document.getElementById('resultScoreNum').textContent=score;
+ document.getElementById('resultText').innerHTML='栃木のふしぎな仲間を、こんなにつかまえたよ！';
+ renderCapturedResult();
+ resultScreen.classList.remove('hidden');
+}
+async function startCamera(){
+ if(cameraStream)return;
+ try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60,min:30}},audio:false});video.srcObject=cameraStream;await video.play();camCanvas.width=CAM_W;camCanvas.height=CAM_H;if(!cameraLoopActive){cameraLoopActive=true;requestAnimationFrame(cameraLoop)}}
+ catch(e){alert('カメラを開始できませんでした: '+e.message);mode='test'}
+}
+const MAX_BALLS=4;
+let multiBallTracks=[],nextMultiBallId=1;
+
+// v63: iPhone 12 mini前方設置 + 約5cm薄ピンク球向けの低遅延検出。
+// 「赤っぽい物なら何でも拾う」旧判定を廃止し、色相・彩度・明度・RGB比率・形状を組み合わせる。
+function rgbToHsvFast(r,g,b){
+ const rf=r/255,gf=g/255,bf=b/255;
+ const mx=Math.max(rf,gf,bf),mn=Math.min(rf,gf,bf),d=mx-mn;
+ let h=0;
+ if(d>0){
+  if(mx===rf)h=60*(((gf-bf)/d)%6);
+  else if(mx===gf)h=60*(((bf-rf)/d)+2);
+  else h=60*(((rf-gf)/d)+4);
+  if(h<0)h+=360;
+ }
+ return {h,s:mx===0?0:d/mx,v:mx};
+}
+function isLightPinkPixel(r,g,b){
+ // 手元の「薄ピンク球」を想定した固定プロファイル。
+ // 白/肌色/赤/オレンジ/紫/暗いピンクをなるべく除外する。
+ if(r<150||g<80||b<105)return false;
+ const hsv=rgbToHsvFast(r,g,b);
+ const pinkHue=(hsv.h>=326||hsv.h<=8);
+ const lightEnough=hsv.v>=0.58;
+ const softPinkSat=hsv.s>=0.12&&hsv.s<=0.52;
+ const redLead=(r-g)>=18&&(r-b)>=4&&(r-b)<=95;
+ const blueSupport=b>=g*0.94; // 肌色・オレンジを除外
+ return pinkHue&&lightEnough&&softPinkSat&&redLead&&blueSupport;
+}
+function findPinkBlobs(data,w,h){
+ const step=2,gw=Math.ceil(w/step),gh=Math.ceil(h/step);
+ const mask=new Uint8Array(gw*gh),seen=new Uint8Array(gw*gh);
+ // 1) 薄ピンク色だけをマスク化
+ for(let gy=0;gy<gh;gy++)for(let gx=0;gx<gw;gx++){
+  const x=gx*step,y=gy*step,i=(y*w+x)*4;
+  if(isLightPinkPixel(data[i],data[i+1],data[i+2]))mask[gy*gw+gx]=1;
+ }
+ // 2) 孤立した1pxノイズを除去。ボール本体の連続領域は残す。
+ const clean=new Uint8Array(mask.length);
+ for(let gy=1;gy<gh-1;gy++)for(let gx=1;gx<gw-1;gx++){
+  const q=gy*gw+gx;if(!mask[q])continue;
+  let neighbors=0;
+  for(let yy=-1;yy<=1;yy++)for(let xx=-1;xx<=1;xx++)neighbors+=mask[(gy+yy)*gw+(gx+xx)];
+  if(neighbors>=3)clean[q]=1;
+ }
+ // 3) 連結領域を抽出し、サイズと形状でもボール候補を絞る。
+ const blobs=[],stack=[];
+ for(let sy=1;sy<gh-1;sy++)for(let sx=1;sx<gw-1;sx++){
+  const si=sy*gw+sx;if(!clean[si]||seen[si])continue;
+  stack.length=0;stack.push(si);seen[si]=1;
+  let count=0,sumx=0,sumy=0,minx=sx,maxx=sx,miny=sy,maxy=sy;
+  while(stack.length){
+   const q=stack.pop(),y=(q/gw)|0,x=q-y*gw;
+   count++;sumx+=x;sumy+=y;minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);
+   const n=[q-1,q+1,q-gw,q+gw];
+   for(const ni of n){
+    if(ni<0||ni>=clean.length||seen[ni]||!clean[ni])continue;
+    const ny=(ni/gw)|0,nx=ni-ny*gw;
+    if(Math.abs(nx-x)+Math.abs(ny-y)!==1)continue;
+    seen[ni]=1;stack.push(ni);
+   }
+  }
+  const bw=(maxx-minx+1)*step,bh=(maxy-miny+1)*step;
+  const area=count*step*step,boxArea=bw*bh;
+  const aspect=bw/Math.max(1,bh),fill=area/Math.max(1,boxArea);
+  // 投球中はモーションブラーで少し楕円になるため、真円だけには限定しない。
+  const plausibleSize=area>=36&&area<=15000&&bw>=5&&bh>=5&&bw<=170&&bh<=170;
+  const plausibleShape=aspect>=0.42&&aspect<=2.35&&fill>=0.20;
+  if(plausibleSize&&plausibleShape){
+   const cx=(sumx/count)*step,cy=(sumy/count)*step;
+   // 大きさだけでなく「ボールらしい形」を加点し、誤検出候補を後ろへ回す。
+   const roundness=1-Math.min(1,Math.abs(Math.log(aspect)));
+   const score=area*(0.70+0.30*Math.max(0,roundness))*Math.min(1,fill/0.55);
+   const diameter=Math.sqrt(4*area/Math.PI);
+   blobs.push({x:cx,y:cy,area,bw,bh,diameter,score});
+  }
+ }
+ return blobs.sort((a,b)=>b.score-a.score).slice(0,MAX_BALLS);
+}
+function pointInsidePlayfield(p,margin=.08){
+ return p.x>=W*(CALIB_MARGIN_X-margin)&&p.x<=W*(1-CALIB_MARGIN_X+margin)&&
+        p.y>=H*(CALIB_MARGIN_Y-margin)&&p.y<=H*(1-CALIB_MARGIN_Y+margin);
+}
+function expectedScreenBallDiameter(p){
+ if(!screenBallDiameters||screenBallDiameters.length!==4)return screenBallDiameterPx;
+ // Corner order: TL, TR, BR, BL. Interpolate expected 5 cm size by impact position.
+ // This compensates for perspective when the camera is farther away / mounted high.
+ const nx=Math.max(0,Math.min(1,(p.x/W-CALIB_MARGIN_X)/(1-2*CALIB_MARGIN_X)));
+ const ny=Math.max(0,Math.min(1,(p.y/H-CALIB_MARGIN_Y)/(1-2*CALIB_MARGIN_Y)));
+ const tl=screenBallDiameters[0],tr=screenBallDiameters[1],br=screenBallDiameters[2],bl=screenBallDiameters[3];
+ const top=tl+(tr-tl)*nx,bottom=bl+(br-bl)*nx;
+ const d=top+(bottom-top)*ny;
+ return Number.isFinite(d)&&d>0?d:screenBallDiameterPx;
+}
+function updateMultiBallTracks(blobs,now){
+ const available=new Set(blobs.map((_,i)=>i));
+ for(const t of multiBallTracks){
+  // 480x270化に合わせて追跡許容距離を拡大。直前速度から予測した位置も照合に使う。
+  const dt=Math.max(1,now-(t.lastSeen||now));
+  const predCX=t.cx+(t.vcx||0)*dt,predCY=t.cy+(t.vcy||0)*dt;
+  let best=-1,dist=112;
+  blobs.forEach((b,i)=>{
+   if(!available.has(i))return;
+   const d=Math.hypot(b.x-predCX,b.y-predCY);
+   if(d<dist){dist=d;best=i}
+  });
+  if(best>=0){
+   const b=blobs[best];available.delete(best);
+   const p=cameraToScreen(b.x,b.y);
+   const frameDt=Math.max(8,Math.min(80,now-(t.lastSeen||now)));
+   const move=Math.hypot(p.x-t.gx,p.y-t.gy);
+   const rawVX=(p.x-t.gx)/frameDt,rawVY=(p.y-t.gy)/frameDt;
+   const rawVCX=(b.x-t.cx)/frameDt,rawVCY=(b.y-t.cy)/frameDt;
+   t.vx=(t.vx||0)*.55+rawVX*.45;t.vy=(t.vy||0)*.55+rawVY*.45;
+   t.vcx=(t.vcx||0)*.55+rawVCX*.45;t.vcy=(t.vcy||0)*.55+rawVCY*.45;
+   t.prevGX=t.gx;t.prevGY=t.gy;t.cx=b.x;t.cy=b.y;t.gx=p.x;t.gy=p.y;t.lastSeen=now;t.missing=0;
+   t.diameter=b.diameter;t.samples=(t.samples||0)+1;
+   // 投げる前に一度静止した球をARM。iPhone前方設置では手元の球を安定してLOCKできる。
+   if(move<34)t.stillFrames=(t.stillFrames||0)+1;else t.stillFrames=0;
+   if(t.stillFrames>=2)t.armed=true;
+   const speed=Math.hypot(t.vx||0,t.vy||0); // screen px/ms
+   if(t.armed&&!t.flying&&(move>62||speed>.72)){
+    t.flying=true;t.started=now;t.flightSamples=0;t.minDiameter=b.diameter;t.lastFlight={x:t.gx,y:t.gy};
+   }
+   if(t.flying){
+    t.flightSamples++;t.lastFlight={x:t.gx,y:t.gy};t.minDiameter=Math.min(t.minDiameter||b.diameter,b.diameter);
+    // 約5cm球を画面面で登録してある場合、球がその見かけサイズまで縮んだら「画面直前」。
+    // 消失を待たず、十分な飛行履歴があり画面内にいる時だけ先行HITする。
+    const localScreenDiameter=expectedScreenBallDiameter(p);
+    if(localScreenDiameter&&t.flightSamples>=3&&now-t.started>70&&pointInsidePlayfield(p,.035)){
+     const ratio=b.diameter/localScreenDiameter;
+     const towardScreenSize=ratio>=.72&&ratio<=1.10;
+     const movingEnough=speed>.34;
+     if(towardScreenSize&&movingEnough&&!t.resolved){
+      const leadMs=10; // 描画/音声遅延を相殺するごく短い予測
+      hitAt(p.x+(t.vx||0)*leadMs,p.y+(t.vy||0)*leadMs);
+      t.resolved=true;t.resolveReason='NEAR-SCREEN';
+     }
+    }
+   }
+  }else t.missing++;
+ }
+ // 5cmサイズ登録が効かなかった場合の低遅延フォールバック。
+ // 強い飛行トラックは1フレーム消失で着弾。弱いトラックだけ従来同様2フレーム待つ。
+ for(const t of multiBallTracks){
+  if(!t.flying||t.resolved||!t.lastFlight)continue;
+  const speed=Math.hypot(t.vx||0,t.vy||0);
+  const reliable=t.flightSamples>=3&&speed>.34&&pointInsidePlayfield(t.lastFlight,.06);
+  if((reliable&&t.missing>=1)||t.missing>=2){
+   const predictMs=reliable?Math.min(28,Math.max(8,now-t.lastSeen)):0;
+   hitAt(t.lastFlight.x+(t.vx||0)*predictMs,t.lastFlight.y+(t.vy||0)*predictMs);
+   t.resolved=true;t.resolveReason=reliable?'1-FRAME':'2-FRAME';
+  }else if(now-t.started>900){
+   hitAt(t.lastFlight.x,t.lastFlight.y);t.resolved=true;t.resolveReason='TIMEOUT';
+  }
+ }
+ multiBallTracks=multiBallTracks.filter(t=>now-t.lastSeen<320&&!t.resolved);
+ for(const i of available){
+  if(multiBallTracks.length>=MAX_BALLS)break;
+  const b=blobs[i],p=cameraToScreen(b.x,b.y);
+  multiBallTracks.push({id:nextMultiBallId++,cx:b.x,cy:b.y,gx:p.x,gy:p.y,prevGX:p.x,prevGY:p.y,lastSeen:now,missing:0,armed:false,stillFrames:0,flying:false,resolved:false,lastFlight:null,diameter:b.diameter,vx:0,vy:0,vcx:0,vcy:0,samples:1,flightSamples:0});
+ }
+}
+function cameraLoop(){
+ if(!cameraStream){cameraLoopActive=false;return}
+ if(video.readyState>=2){
+  camCtx.drawImage(video,0,0,CAM_W,CAM_H);
+  const img=camCtx.getImageData(0,0,CAM_W,CAM_H);
+  const blobs=findPinkBlobs(img.data,CAM_W,CAM_H);
+  const now=performance.now();
+
+  if(blobs.length){
+   latestCameraPoint={x:blobs[0].x,y:blobs[0].y};latestCameraBlob=blobs[0];
+   const p=cameraToScreen(blobs[0].x,blobs[0].y);
+   detectDot.style.display='block';detectDot.style.left=p.x+'px';detectDot.style.top=p.y+'px';
+  }else{
+   latestCameraPoint=null;latestCameraBlob=null;detectDot.style.display='none';
+  }
+
+  if(calibrationActive){
+   if(blobs.length){
+    calibrationLiveSamples.push({x:blobs[0].x,y:blobs[0].y,diameter:blobs[0].diameter,at:now});
+    if(calibrationLiveSamples.length>18)calibrationLiveSamples.shift();
+    detectStatus.textContent=`ボール検出OK x:${Math.round(blobs[0].x)} y:${Math.round(blobs[0].y)}　安定:${Math.min(calibrationLiveSamples.length,12)}/12`;
+   }else{calibrationLiveSamples=[];detectStatus.textContent='薄ピンク専用検出：ボールを映してください';}
+  }else if(cameraSetupActive){
+   detectStatus.textContent=`画角登録 ${screenFrameCameraPoints.length}/4：カメラ映像上のTV四隅をクリック`;
+  }else if(running&&mode==='camera'){
+   updateMultiBallTracks(blobs,now);
+   const flying=multiBallTracks.filter(t=>t.flying).length;
+   const sizeInfo=blobs.length&&screenBallDiameterPx?`　SIZE ${(blobs[0].diameter/screenBallDiameterPx).toFixed(2)}x`:'';
+   detectStatus.textContent=`薄ピンク球 ${blobs.length}/4 LOCK${flying?'　THROW '+flying:''}${sizeInfo}`;
+  }else{
+   detectStatus.textContent=blobs.length?`薄ピンク球 ${blobs.length}/4 LOCK`:'薄ピンクのボールを映してください';
+  }
+ }
+ requestAnimationFrame(cameraLoop);
+}
+document.getElementById('startTest').onclick=()=>startGame('test');
+document.getElementById('startCamera').onclick=()=>startGame('camera');
+document.getElementById('again').onclick=()=>startGame(mode);
+document.getElementById('back').onclick=()=>{resultScreen.classList.add('hidden');startScreen.classList.remove('hidden');startMusic('title')};
+document.addEventListener('pointerdown',()=>{if(!audioCtx){musicMode='title';audioInit()}},{once:true});
+
+document.getElementById('startCalibration').onclick=beginCalibration;
+document.getElementById('cameraSetupContinue').onclick=startFourPointCalibration;
+document.getElementById('resetScreenFrame').onclick=resetScreenFrameRegistration;
+document.getElementById('cameraSetupCancel').onclick=finishCalibration;
+document.getElementById('captureCalibration').onclick=captureCalibrationPoint;
+document.getElementById('cancelCalibration').onclick=finishCalibration;
+document.addEventListener('keydown',e=>{if(calibrationActive&&e.code==='Space'){e.preventDefault();captureCalibrationPoint()}});
+updateCalibrationState();
+
+
+function updateVolumeUI(){
+ const b=document.getElementById('bgmVolume'),e=document.getElementById('seVolume');
+ if(!b||!e)return;
+ b.value=Math.round(bgmVolume*100);e.value=Math.round(seVolume*100);
+ document.getElementById('bgmVolumeValue').textContent=Math.round(bgmVolume*100)+'%';
+ document.getElementById('seVolumeValue').textContent=Math.round(seVolume*100)+'%';
+}
+function setBgmVolume(v){
+ bgmVolume=Math.max(0,Math.min(1,v));
+ localStorage.setItem('tochicolleBgmVolume',bgmVolume);
+ if(bgmGain&&audioCtx)bgmGain.gain.setTargetAtTime(bgmVolume,audioCtx.currentTime,.025);
+ updateVolumeUI();
+}
+function setSeVolume(v){
+ seVolume=Math.max(0,Math.min(1,v));
+ localStorage.setItem('tochicolleSeVolume',seVolume);
+ if(seGain&&audioCtx)seGain.gain.setTargetAtTime(seVolume,audioCtx.currentTime,.025);
+ updateVolumeUI();
+}
+document.getElementById('bgmVolume').addEventListener('input',e=>setBgmVolume(+e.target.value/100));
+document.getElementById('recommendedVolume').onclick=()=>{
+ setBgmVolume(.90);setSeVolume(1.00);
+ if(audioCtx) sfxHit(1);
+};
+document.getElementById('seVolume').addEventListener('input',e=>setSeVolume(+e.target.value/100));
+updateVolumeUI();
+
+document.getElementById('openGameSettings').onclick=()=>{
+ updateSpeedUI();updateVolumeUI();
+ settingsScreen.classList.remove('hidden');
+};
+document.getElementById('closeGameSettings').onclick=()=>settingsScreen.classList.add('hidden');
+document.getElementById('speedNormal').onclick=()=>setGameSpeed('normal');
+document.getElementById('speedSlow').onclick=()=>setGameSpeed('slow');
+updateSpeedUI();
+
+
+// イベント登録完了後に描画ループを開始
+draw();
+
+document.addEventListener('keydown',(ev)=>{
+ if(ev.key!=='Enter' || ev.repeat) return;
+ const tag=(document.activeElement&&document.activeElement.tagName)||'';
+ if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA') return;
+ if(!running && resultScreen && getComputedStyle(resultScreen).display!=='none'){
+  ev.preventDefault();
+  document.getElementById('again').click();
+  return;
+ }
+ const startScreen=document.getElementById('startScreen');
+ if(!running && startScreen && getComputedStyle(startScreen).display!=='none'){
+  ev.preventDefault();
+  document.getElementById('startCamera').click();
+ }
+});
+</script>
+</body></html>
